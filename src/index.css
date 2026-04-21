@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #0F172A;
+  background: radial-gradient(at top, #EDE9FE 0%, #F8FAFC 45%) no-repeat;
+  min-height: 100vh;
+}
+
+/* Dark mode body override — triggered by .dark on <html> */
+.dark body {
+  color: #f1f5f9;
+  background: radial-gradient(at top, #2D1B69 0%, #0F172A 45%) no-repeat;
+}
+
+.font-display { font-family: 'Poppins', system-ui, sans-serif; }
+
+button { cursor: pointer; }
+
+.dojo-card {
+  @apply bg-white rounded-2xl p-6 shadow-dojo border border-slate-100;
+  @apply dark:bg-slate-800 dark:border-slate-700;
+}
+
+.dojo-btn-primary {
+  @apply inline-flex items-center gap-2 bg-dojo-primary hover:bg-dojo-primaryDark text-white font-semibold px-5 py-2.5 rounded-xl transition-colors;
+}
+
+.dojo-btn-ghost {
+  @apply inline-flex items-center gap-2 bg-transparent hover:bg-slate-100 text-dojo-ink font-medium px-4 py-2 rounded-xl transition-colors;
+  @apply dark:text-slate-200 dark:hover:bg-slate-700;
+}
+
+.dojo-input {
+  @apply w-full bg-white border border-slate-200 focus:border-dojo-primary focus:ring-2 focus:ring-dojo-primary/20 rounded-xl px-4 py-2.5 outline-none transition;
+  @apply dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100 dark:placeholder:text-slate-500;
+}
