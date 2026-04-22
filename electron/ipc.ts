@@ -286,8 +286,8 @@ export function registerIpcHandlers(ipc: IpcMain) {
         (id, access_token, refresh_token, user_id, user_email, last_pull_at,
          resend_api_key, notification_email, weekly_digest, approval_alerts)
         VALUES (1, ?, ?, ?, ?, '', '', '', 0, 0)`, [
-        patch.access_token ?? '', patch.refresh_token ?? '',
-        patch.user_id ?? '', patch.user_email ?? '',
+        String(patch.access_token ?? ''), String(patch.refresh_token ?? ''),
+        String(patch.user_id ?? ''), String(patch.user_email ?? ''),
       ]);
     } else {
       const pairs = Object.keys(patch).map(k => `${k} = ?`).join(', ');

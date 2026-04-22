@@ -55,7 +55,7 @@ export async function pushRecord({ table, record }: PushPayload): Promise<void> 
   if (!sb) return;
   try {
     const payload = { ...record, user_id: _userId, local_id: record.id, updated_at: new Date().toISOString() };
-    delete payload['id'];
+    delete (payload as Record<string, unknown>)['id'];
     await sb.from(TABLE_MAP[table]).upsert(payload, { onConflict: 'user_id,local_id' });
   } catch (e) {
     console.error('[sync] pushRecord error:', e);

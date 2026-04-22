@@ -52,7 +52,7 @@ export async function initDatabase(filePath: string): Promise<SqlJsDatabase> {
   const wasmPath = findSqlWasm();
   const wasmBinary = fs.readFileSync(wasmPath);
 
-  const SQL: SqlJsStatic = await initSqlJs({ wasmBinary });
+  const SQL: SqlJsStatic = await initSqlJs({ wasmBinary: wasmBinary.buffer as ArrayBuffer });
 
   // Load existing DB file if present, otherwise create a new one.
   if (fs.existsSync(filePath)) {
