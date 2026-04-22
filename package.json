@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build && electron-builder",
     "build:vite": "tsc -b && vite build",
+    "build:web": "tsc -b && vite build --outDir dist-web",
     "preview": "vite preview",
     "electron:dev": "vite",
     "dist": "npm run build:vite && electron-builder"

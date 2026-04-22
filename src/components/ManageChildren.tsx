@@ -26,6 +26,7 @@ export function ManageChildren() {
 
   // Modal state
   const [archiveTarget, setArchiveTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget]   = useState<{ id: number; name: string } | null>(null);
   const [adjustTarget, setAdjustTarget]   = useState<{ id: number; name: string } | null>(null);
   const [editTarget, setEditTarget]       = useState<Child | null>(null);
 
@@ -74,6 +75,13 @@ export function ManageChildren() {
     if (!archiveTarget) return;
     await window.dojo.archiveChild(archiveTarget.id);
     setArchiveTarget(null);
+    await refreshChildren();
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    await window.dojo.deleteChild(deleteTarget.id);
+    setDeleteTarget(null);
     await refreshChildren();
   }
 
@@ -248,6 +256,12 @@ export function ManageChildren() {
                       >
                         📦 Archive
                       </button>
+                      <button
+                        className="px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition"
+                        onClick={() => setDeleteTarget({ id: c.id, name: c.name })}
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -275,12 +289,20 @@ export function ManageChildren() {
                 <div key={c.id} className="flex items-center gap-4 py-3 opacity-60">
                   <div className="text-3xl">{c.avatar_emoji}</div>
                   <div className="flex-1 text-sm text-dojo-muted">{c.name} (archived)</div>
-                  <button
-                    className="px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition"
-                    onClick={() => unarchive(c.id)}
-                  >
-                    ♻️ Unarchive
-                  </button>
+                  <div className="flex gap-1">
+                    <button
+                      className="px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 rounded-xl transition"
+                      onClick={() => unarchive(c.id)}
+                    >
+                      ♻️ Unarchive
+                    </button>
+                    <button
+                      className="px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition"
+                      onClick={() => setDeleteTarget({ id: c.id, name: c.name })}
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -297,6 +319,16 @@ export function ManageChildren() {
         danger={false}
         onConfirm={confirmArchive}
         onCancel={() => setArchiveTarget(null)}
+      />
+      <ConfirmModal
+        open={deleteTarget !== null}
+        icon="🗑️"
+        title={`Delete ${deleteTarget?.name ?? ''}?`}
+        message="This permanently deletes the child and ALL their history, points, and records. This cannot be undone."
+        confirmLabel="Delete permanently"
+        danger={true}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
       <AdjustModal
         open={adjustTarget !== null}

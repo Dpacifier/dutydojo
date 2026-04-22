@@ -22,15 +22,8 @@ export default function App() {
     bootstrap();
   }, [bootstrap]);
 
-  const isBrowser = !(window as unknown as { __electron__?: boolean }).__electron__;
-
   return (
     <div className="min-h-screen flex flex-col text-dojo-ink dark:text-slate-100">
-      {isBrowser && view.name !== 'loading' && (
-        <div className="bg-amber-400 text-amber-900 text-xs font-semibold text-center py-1.5 px-4">
-          Demo mode — data is temporary and resets on refresh. Run the desktop app for real data.
-        </div>
-      )}
 
       <div className="flex-1">
         {view.name === 'loading' && <LoadingScreen />}
