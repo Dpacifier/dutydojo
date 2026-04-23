@@ -158,10 +158,25 @@ export const webApi: DojoApi = {
 
   // ── Auth ────────────────────────────────────────────────────────────────────
   // webApi is only installed after sign-in, so isSetup always returns true.
-  isSetup:       async () => true,
-  setupParent:   async () => true,
-  verifyParent:  async () => true,   // already authenticated via Supabase
-  changeParentPassword: async ({ newPassword }) => {
+  isSetup:     async () => true,
+  setupParent: async () => true,
+
+  // Re-authenticate with Supabase to verify the parent portal password.
+  // The "parent password" on web is the same as the Supabase account password.
+  verifyParent: async (password) => {
+    const { data: { session } } = await sb().auth.getSession();
+    const email = session?.user?.email;
+    if (!email) return false;
+    const { error } = await sb().auth.signInWithPassword({ email, password });
+    return !error;
+  },
+  changeParentPassword: async ({ oldPassword, newPassword }) => {
+    // Verify old password first
+    const { data: { session } } = await sb().auth.getSession();
+    const email = session?.user?.email;
+    if (!email) return false;
+    const { error: verifyErr } = await sb().auth.signInWithPassword({ email, password: oldPassword });
+    if (verifyErr) return false;
     const { error } = await sb().auth.updateUser({ password: newPassword });
     return !error;
   },
