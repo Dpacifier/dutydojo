@@ -1019,3 +1019,42 @@ export const webApi: DojoApi = {
   cloudSendTestEmail:   async () => ({ ok: false }),
   cloudSendWeeklyDigest:async () => ({ ok: false }),
 };
+
+/**
+ * Permanently deletes the current user's account.
+ * Calls the `delete-account` Edge Function which removes all dd_* data
+ * and then deletes the Supabase auth user, then signs out locally.
+ * Returns { ok: true } on success or { ok: false, error: string } on failure.
+ */
+export async function deleteWebAccount(password: string): Promise<{ ok: boolean; error?: string }> {
+  // Re-verify password before irreversible deletion
+  const { data: { session } } = await sb().auth.getSession();
+  const email = session?.user?.email;
+  if (!email) return { ok: false, error: 'No active session' };
+
+  const { error: verifyErr } = await sb().auth.signInWithPassword({ email, password });
+  if (verifyErr) return { ok: false, error: 'Password is incorrect' };
+
+  // Retrieve a fresh token after re-auth
+  const { data: { session: freshSession } } = await sb().auth.getSession();
+  const token = freshSession?.access_token;
+  if (!token) return { ok: false, error: 'Could not refresh session' };
+
+  // Call the Edge Function
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { ok: false, error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+
+  // Sign out locally so the UI resets to the login screen
+  await sb().auth.signOut();
+  return { ok: true };
+}

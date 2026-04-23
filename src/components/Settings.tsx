@@ -3,6 +3,10 @@ import { useApp } from '../store';
 import type { ParentSettings } from '../types';
 import { CloudSyncSettings } from './CloudSyncSettings';
 
+// True when running in the browser PWA (not the Electron desktop app).
+// Electron's Chromium always includes "Electron" in the user-agent string.
+const IS_WEB = !navigator.userAgent.includes('Electron');
+
 const RECOVERY_QUESTIONS = [
   "What was the name of your first pet?",
   "What city were you born in?",
@@ -42,6 +46,11 @@ export function Settings() {
     require_approval: 0,
     max_points_per_day: 0,
   });
+
+  // ── Danger Zone (web only) ──
+  const [deleteStep, setDeleteStep]       = useState<'idle' | 'confirm' | 'busy'>('idle');
+  const [deletePw, setDeletePw]           = useState('');
+  const [deleteMsg, setDeleteMsg]         = useState<{ ok: boolean; text: string } | null>(null);
 
   // ── Kid PIN ──
   const [kidPinExists, setKidPinExists]   = useState(false);
@@ -113,6 +122,26 @@ export function Settings() {
     setRecoveryAnswer('');
     setConfirmRecovery('');
     setRecoveryMsg({ ok: true, text: 'Recovery question updated ✅' });
+  }
+
+  async function doDeleteAccount() {
+    if (!deletePw.trim()) return setDeleteMsg({ ok: false, text: 'Please enter your password to confirm' });
+    setDeleteStep('busy');
+    setDeleteMsg(null);
+    try {
+      const { deleteWebAccount } = await import('../webApi');
+      const result = await deleteWebAccount(deletePw);
+      if (result.ok) {
+        // App will reset to login screen automatically via onAuthStateChange
+        setDeleteMsg({ ok: true, text: 'Account deleted. Redirecting…' });
+      } else {
+        setDeleteMsg({ ok: false, text: result.error ?? 'Deletion failed. Please try again.' });
+        setDeleteStep('confirm');
+      }
+    } catch {
+      setDeleteMsg({ ok: false, text: 'Something went wrong. Please try again.' });
+      setDeleteStep('confirm');
+    }
   }
 
   async function doBackupExport() {
@@ -510,10 +539,79 @@ export function Settings() {
           </p>
           <p>
             Next phases: mobile apps (iOS + Android), AI behaviour coaching.
-
           </p>
         </div>
       </div>
+
+      {/* ── Danger Zone (web only) ── */}
+      {IS_WEB && (
+        <div className="rounded-2xl border-2 border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">⚠️</span>
+            <div className="font-display font-semibold text-lg text-dojo-danger">Danger Zone</div>
+          </div>
+          <div className="text-sm text-dojo-muted mb-4">
+            Permanently deletes your account, all children, all history, rewards, behaviours, and
+            every other piece of data associated with this account. This action{' '}
+            <strong className="text-dojo-danger">cannot be undone</strong>.
+          </div>
+
+          {deleteStep === 'idle' && (
+            <button
+              className="px-4 py-2 rounded-xl border-2 border-dojo-danger text-dojo-danger text-sm font-semibold hover:bg-red-100 dark:hover:bg-red-950/50 transition"
+              onClick={() => { setDeleteStep('confirm'); setDeleteMsg(null); setDeletePw(''); }}
+            >
+              🗑️ Delete my account
+            </button>
+          )}
+
+          {(deleteStep === 'confirm' || deleteStep === 'busy') && (
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-dojo-danger">
+                Enter your password to confirm permanent deletion:
+              </div>
+              <input
+                type="password"
+                className="dojo-input border-red-300 dark:border-red-700 focus:ring-red-400"
+                placeholder="Your current password"
+                value={deletePw}
+                disabled={deleteStep === 'busy'}
+                onChange={(e) => setDeletePw(e.target.value)}
+                autoFocus
+              />
+
+              {deleteMsg && (
+                <div
+                  className={`text-sm px-3 py-2 rounded-xl border ${
+                    deleteMsg.ok
+                      ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
+                      : 'bg-red-100 border-red-200 text-dojo-danger'
+                  }`}
+                >
+                  {deleteMsg.text}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  className="px-4 py-2 rounded-xl bg-dojo-danger text-white text-sm font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={doDeleteAccount}
+                  disabled={deleteStep === 'busy'}
+                >
+                  {deleteStep === 'busy' ? '⏳ Deleting…' : '🗑️ Delete permanently'}
+                </button>
+                <button
+                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
+                  onClick={() => { setDeleteStep('idle'); setDeleteMsg(null); setDeletePw(''); }}
+                  disabled={deleteStep === 'busy'}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );
