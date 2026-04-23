@@ -7,12 +7,12 @@ interface Props {
   onClose: () => void;
 }
 
-const COMPANY = 'Switch IT Global Limited';
-const COMPANY_NO = '11001626';
-const JURISDICTION = 'England and Wales';
-const PRODUCT = 'DutyDojo';
-const CONTACT_EMAIL = 'legal@switchitglobal.com';
-const EFFECTIVE_DATE = '1 May 2025';
+const COMPANY        = 'Switch IT Global Limited';
+const COMPANY_NO     = '11001626';
+const JURISDICTION   = 'England and Wales';
+const PRODUCT        = 'DutyDojo';
+const CONTACT_EMAIL  = 'legal@dutydojo.com';
+const EFFECTIVE_DATE = '23 April 2026';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'terms',   label: '📋 Terms & Conditions' },
@@ -86,33 +86,32 @@ function TermsContent() {
       <Section title="1. About DutyDojo">
         {PRODUCT} ("the App") is a family behaviour-tracking and reward-management application
         published by <strong>{COMPANY}</strong>, a company registered in {JURISDICTION}
-        (Company No. {COMPANY_NO}). By downloading, installing, or using {PRODUCT} you agree to
+        (Company No. {COMPANY_NO}). {PRODUCT} is available as a desktop app for Windows and as
+        a web app accessible from any browser. By installing or using {PRODUCT} you agree to
         these Terms &amp; Conditions in full. If you do not agree, you must not use the App.
       </Section>
 
       <Section title="2. Licence to Use">
         Subject to these Terms, {COMPANY} grants you a personal, non-transferable, non-exclusive,
-        revocable licence to install and use {PRODUCT} on devices you own or control, solely for
-        your personal, non-commercial household use. You must not sublicence, sell, rent, or
-        otherwise distribute the App or any part of it.
+        revocable licence to use {PRODUCT} on devices you own or control, solely for your
+        personal, non-commercial household use. You must not sublicence, sell, rent, or otherwise
+        distribute the App or any part of it.
       </Section>
 
       <Section title="3. Free and Paid Tiers">
-        {PRODUCT} is offered on a freemium basis. A free tier is available with core functionality.
-        Premium features may require a paid subscription. Subscription fees, billing periods, and
-        included features are described at the point of purchase and on our website. All fees are
-        stated inclusive or exclusive of VAT as required by applicable law. Subscriptions renew
-        automatically unless cancelled before the renewal date. Refunds are handled in accordance
-        with the relevant app store policy or, for direct purchases, our refund policy available
-        on request.
+        {PRODUCT} is offered on a freemium basis. A free tier is available with core
+        functionality. Premium features may require a paid subscription. Subscription fees,
+        billing periods, and included features are described at the point of purchase and on our
+        website. Subscriptions renew automatically unless cancelled before the renewal date.
+        Refunds are handled in accordance with our refund policy, available on request.
       </Section>
 
       <Section title="4. Acceptable Use">
         You agree to use {PRODUCT} only for lawful purposes and in a manner that does not infringe
-        the rights of any third party. You must not: (a) attempt to decompile, reverse engineer, or
-        extract source code from the App; (b) use the App to store or transmit unlawful, defamatory,
-        or harmful content; (c) attempt to gain unauthorised access to any part of our systems;
-        (d) use the App for any commercial purpose without our prior written consent.
+        the rights of any third party. You must not: (a) attempt to decompile, reverse engineer,
+        or extract source code from the App; (b) use the App to store or transmit unlawful,
+        defamatory, or harmful content; (c) attempt to gain unauthorised access to any part of
+        our systems; (d) use the App for any commercial purpose without our prior written consent.
       </Section>
 
       <Section title="5. Intellectual Property">
@@ -122,26 +121,25 @@ function TermsContent() {
       </Section>
 
       <Section title="6. Data Ownership">
-        All content you create within {PRODUCT} (children's profiles, behaviour records, reward
-        data, and history) belongs to you. {COMPANY} does not claim any ownership of your data.
+        All content you create within {PRODUCT} — children's profiles, behaviour records, reward
+        data, and history — belongs to you. {COMPANY} does not claim any ownership of your data.
         See our Privacy Policy and Data &amp; GDPR sections for how your data is stored and
         processed.
       </Section>
 
       <Section title="7. Disclaimer of Warranties">
         The App is provided "as is" and "as available" without warranties of any kind, express or
-        implied, including warranties of merchantability, fitness for a particular purpose, or
-        non-infringement. We do not warrant that the App will be uninterrupted, error-free, or
-        free of harmful components.
+        implied. We do not warrant that the App will be uninterrupted, error-free, or free of
+        harmful components.
       </Section>
 
       <Section title="8. Limitation of Liability">
         To the fullest extent permitted by law, {COMPANY} shall not be liable for any indirect,
-        incidental, special, consequential, or punitive damages, or loss of data, arising from
-        your use of or inability to use {PRODUCT}. Our total aggregate liability to you shall not
-        exceed the greater of (a) the amounts paid by you to us in the 12 months preceding the
-        claim, or (b) £100. Nothing in these Terms limits liability for death or personal injury
-        caused by our negligence, fraud, or any other liability that cannot be excluded by law.
+        incidental, special, consequential, or punitive damages arising from your use of or
+        inability to use {PRODUCT}. Our total aggregate liability to you shall not exceed the
+        greater of (a) the amounts paid by you to us in the 12 months preceding the claim, or
+        (b) £100. Nothing in these Terms limits liability for death or personal injury caused by
+        our negligence, fraud, or any other liability that cannot be excluded by law.
       </Section>
 
       <Section title="9. Changes to the App and Terms">
@@ -152,9 +150,9 @@ function TermsContent() {
 
       <Section title="10. Termination">
         We may suspend or terminate your access to {PRODUCT} if you breach these Terms. You may
-        stop using the App at any time by uninstalling it. Upon termination, the licence granted
-        to you ceases immediately; provisions that by their nature should survive termination will
-        do so.
+        stop using the App at any time. Upon termination, the licence granted to you ceases
+        immediately. You may request deletion of your account and data at any time — see the
+        Data &amp; GDPR section for details.
       </Section>
 
       <Section title="11. Governing Law and Disputes">
@@ -180,97 +178,97 @@ function PrivacyContent() {
     <>
       <Section title="1. Who We Are">
         {COMPANY} (Company No. {COMPANY_NO}), registered in {JURISDICTION}, publishes {PRODUCT}.
-        We are the software publisher. For questions about this policy contact us at{' '}
+        We are the data controller for the personal data you provide when creating an account.
+        For questions about this policy contact us at{' '}
         <a href={`mailto:${CONTACT_EMAIL}`} className="underline text-dojo-primary">{CONTACT_EMAIL}</a>.
       </Section>
 
-      <Section title="2. What Data the App Processes">
-        {PRODUCT} processes the following categories of personal data on your device:
+      <Section title="2. What Data We Process">
+        {PRODUCT} processes the following categories of personal data:
         <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li><strong>Children's profiles</strong> — names, avatar emoji, point balances, and behaviour history</li>
-          <li><strong>Household settings</strong> — reward definitions, behaviour categories, parental preferences</li>
-          <li><strong>Usage data</strong> — points earned/deducted, rewards claimed, timestamps of activity</li>
-          <li><strong>Account credentials</strong> (cloud sync only) — your email address and a hashed password, stored securely in your own Supabase project</li>
+          <li><strong>Account details</strong> — your email address and a securely hashed password, used to sign in</li>
+          <li><strong>Children's profiles</strong> — first names (or nicknames), avatar emoji, point balances, and behaviour history that you enter</li>
+          <li><strong>Household settings</strong> — reward definitions, behaviour categories, and parental preferences you configure</li>
+          <li><strong>Activity records</strong> — points earned or deducted, rewards claimed, and timestamps of activity</li>
+          <li><strong>Notification email</strong> — an email address you optionally provide to receive weekly digests or approval alerts</li>
         </ul>
-        We do <strong>not</strong> collect names, addresses, school details, photos, location data,
-        or any sensitive personal data beyond the above.
+        We do <strong>not</strong> collect addresses, phone numbers, school details, photos,
+        location data, payment card numbers, or any other sensitive personal data.
       </Section>
 
       <Section title="3. How Your Data Is Stored">
-        By default, all data is stored <strong>exclusively on your device</strong> in an encrypted
-        SQLite database. {COMPANY} has no access to this local data.
+        <strong>Web app users:</strong> Your account and all family data are stored securely in
+        {COMPANY}'s cloud infrastructure, hosted in the EU. Your data is protected so that only
+        your account can access it.
         <br /><br />
-        If you choose to enable <strong>Cloud Sync</strong>, your data is replicated to a Supabase
-        database project that <strong>you create and control</strong>. {COMPANY} does not own,
-        operate, or have access to your Supabase project. Row-Level Security (RLS) ensures only
-        your authenticated account can read or write your data.
+        <strong>Desktop app users:</strong> By default, all data is stored <strong>on your
+        device only</strong> and is never sent to us. If you choose to enable <strong>Cloud
+        Sync</strong>, your data is also stored in {COMPANY}'s secure cloud so you can access
+        it across devices. Cloud Sync is entirely optional and can be disabled at any time.
       </Section>
 
-      <Section title="4. Legal Basis for Processing (UK GDPR)">
+      <Section title="4. Why We Process Your Data (Legal Basis)">
         We process personal data on the following legal bases:
         <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li><strong>Legitimate interests</strong> — operating the app and providing its core functionality</li>
-          <li><strong>Contract performance</strong> — delivering paid subscription features you have purchased</li>
-          <li><strong>Consent</strong> — for optional features such as email notifications via Resend</li>
+          <li><strong>Contract performance</strong> — to provide the service you signed up for, including storing and syncing your family data</li>
+          <li><strong>Legitimate interests</strong> — to keep the service secure, fix bugs, and improve the app</li>
+          <li><strong>Consent</strong> — for optional features such as email notifications, which you can turn off at any time in Settings</li>
         </ul>
-        As the parent or guardian using this App, you are the <strong>data controller</strong>
-        for your children's personal data. {COMPANY} acts as a software provider and does not
-        independently control or process that data.
       </Section>
 
       <Section title="5. Data Sharing">
         {COMPANY} does <strong>not</strong> sell, rent, or share your personal data with third
-        parties for marketing purposes. Data is not shared with any third party except:
+        parties for marketing purposes. Data may be shared only with:
         <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li><strong>Supabase</strong> — only if you enable Cloud Sync, and only within your own project</li>
-          <li><strong>Resend</strong> — only if you configure email notifications and provide your own Resend API key; emails are sent from your own Resend account</li>
-          <li><strong>App store providers</strong> (Apple, Microsoft) — purchase and download records per their own privacy policies</li>
-          <li><strong>Law enforcement</strong> — where required by law</li>
+          <li><strong>Supabase</strong> — our cloud database and authentication provider, used to store and secure your account and family data. Supabase is GDPR-compliant and data is hosted in the EU</li>
+          <li><strong>Resend</strong> — our email delivery service, used only to send notifications you have opted in to (weekly digest, approval alerts). Only your chosen notification email address is shared</li>
+          <li><strong>Law enforcement</strong> — where required by applicable law</li>
         </ul>
       </Section>
 
       <Section title="6. Data Retention">
-        Your data is retained on your device until you uninstall the App or delete individual
-        records. If you use Cloud Sync, data remains in your Supabase project until you delete
-        it there. You can export or delete all your data at any time via the Backup &amp; Restore
-        feature in Settings.
+        We retain your data for as long as your account is active. You can delete your account at
+        any time — web app users can do this via Settings → Danger Zone; desktop app users can
+        contact us at{' '}
+        <a href={`mailto:${CONTACT_EMAIL}`} className="underline text-dojo-primary">{CONTACT_EMAIL}</a>.
+        Deleting your account permanently removes all your data from our systems within 30 days.
+        You can also export your data at any time via the History tab or Settings → Backup.
       </Section>
 
       <Section title="7. Your Rights">
         Under UK GDPR and the Data Protection Act 2018 you have the right to:
         <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li>Access the personal data held about you</li>
-          <li>Rectify inaccurate data</li>
+          <li>Access the personal data we hold about you</li>
+          <li>Correct inaccurate data</li>
           <li>Erase your data ("right to be forgotten")</li>
-          <li>Restrict processing</li>
-          <li>Data portability (export via Settings → Backup)</li>
-          <li>Object to processing</li>
+          <li>Restrict or object to processing</li>
+          <li>Receive your data in a portable format (export via Settings)</li>
           <li>Lodge a complaint with the <strong>Information Commissioner's Office (ICO)</strong> at ico.org.uk</li>
         </ul>
-        To exercise any right, email us at{' '}
+        To exercise any right, email{' '}
         <a href={`mailto:${CONTACT_EMAIL}`} className="underline text-dojo-primary">{CONTACT_EMAIL}</a>.
         We will respond within 30 days.
       </Section>
 
       <Section title="8. Children's Privacy">
-        {PRODUCT} is designed to be used by parents and guardians to manage their own children's
-        data. The App is <strong>not directed at children</strong> and children should not create
-        accounts or configure the App independently. If you are a parent using the App, you are
-        responsible for ensuring that your use of the App complies with applicable laws regarding
-        the processing of children's personal data in your jurisdiction.
+        {PRODUCT} is designed to be used by parents and guardians. The App is{' '}
+        <strong>not directed at children</strong> — children should not create accounts or
+        configure the App independently. As the parent or guardian, you are responsible for
+        the data you enter about your children and for using the App in a way that respects
+        their wellbeing and complies with applicable law.
       </Section>
 
       <Section title="9. Security">
-        We implement appropriate technical and organisational measures to protect personal data,
-        including local database protection, secure session token storage, and encrypted
-        transmission to Supabase over HTTPS. No system is completely secure; in the event of a
-        data breach affecting your rights, we will notify you as required by law.
+        We use industry-standard security measures including encrypted data transmission (HTTPS),
+        secure password hashing, and row-level access controls so that only your account can
+        access your data. No system is entirely risk-free; in the event of a data breach that
+        affects your rights, we will notify you as required by law.
       </Section>
 
       <Section title="10. Changes to This Policy">
         We may update this Privacy Policy from time to time. Changes will be communicated via an
-        in-app notice or the next application update. Continued use of the App constitutes
-        acceptance of the updated policy.
+        in-app notice or email. Continued use of the App constitutes acceptance of the updated
+        policy.
       </Section>
     </>
   );
@@ -282,93 +280,104 @@ function PrivacyContent() {
 function DataContent() {
   return (
     <>
-      <Section title="1. Data Architecture Overview">
-        {PRODUCT} is an <strong>offline-first desktop application</strong>. Your data stays on
-        your device by default and is never transmitted to {COMPANY}'s servers at any point.
-        The optional Cloud Sync feature replicates data to a Supabase project that you own —
-        {COMPANY} has no access to this project.
+      <Section title="1. How DutyDojo Stores Your Data">
+        {PRODUCT} is available as a <strong>Windows desktop app</strong> and a{' '}
+        <strong>web app</strong> (accessible from any browser or installable on your phone).
+        <br /><br />
+        <strong>Web app:</strong> All data is stored in {COMPANY}'s secure cloud, hosted in the
+        EU. You sign in with your email address and password — no technical setup required.
+        <br /><br />
+        <strong>Desktop app:</strong> Data is stored locally on your computer by default.
+        You can optionally enable <strong>Cloud Sync</strong> in Settings to back up your data
+        to {COMPANY}'s cloud and access it across multiple devices.
       </Section>
 
-      <Section title="2. Data Controller vs. Data Processor">
+      <Section title="2. Who Controls Your Data">
         <ul className="list-disc pl-5 space-y-1">
           <li>
-            <strong>You (the parent/guardian)</strong> are the <em>data controller</em> for all
-            personal data entered into the App, including your children's names, behaviour logs,
-            and point history.
+            <strong>You (the parent or guardian)</strong> are the <em>data controller</em> for
+            all personal data you enter — your children's names, behaviour logs, and point
+            history. You decide what is recorded and how long it is kept.
           </li>
           <li>
-            <strong>{COMPANY}</strong> is the <em>software publisher</em> and does not independently
-            store or process your personal data. We do not have access to your local database or
-            your Supabase project.
+            <strong>{COMPANY}</strong> acts as a <em>data processor</em> on your behalf. We store
+            and secure your data using our cloud infrastructure but we do not use your family data
+            for any other purpose.
           </li>
           <li>
-            <strong>Supabase</strong> (if you enable Cloud Sync) acts as a sub-processor under
-            your control. Supabase is GDPR-compliant and its Data Processing Agreement is available
-            at supabase.com/privacy.
+            <strong>Supabase</strong> is our cloud database provider and acts as a sub-processor.
+            Supabase is GDPR-compliant; their data processing agreement is available at{' '}
+            <strong>supabase.com/privacy</strong>. Data is hosted in the EU.
           </li>
         </ul>
       </Section>
 
-      <Section title="3. What Data Is Stored Locally">
-        The following tables are stored in an SQLite database on your device:
+      <Section title="3. What Data Is Stored">
+        The following information may be stored, depending on how you use the app:
         <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li><strong>children</strong> — name, avatar, goal points, consequence threshold, theme colour, notes</li>
-          <li><strong>behaviours</strong> — name, kind, points value, icon, daily limit, category</li>
-          <li><strong>rewards</strong> — name, cost, icon</li>
-          <li><strong>consequences</strong> — name, icon, description; and assigned consequence records</li>
-          <li><strong>history</strong> — point transactions with timestamps, reasons, and fulfilment status</li>
-          <li><strong>settings</strong> — parental preferences (approval mode, caps, defaults)</li>
-          <li><strong>cloud_config</strong> — session tokens for Cloud Sync (stored locally, never sent to us)</li>
+          <li><strong>Children</strong> — name, avatar, goal points, consequence threshold, theme colour, notes</li>
+          <li><strong>Behaviours</strong> — name, kind (positive/negative), points value, icon, daily limit, category</li>
+          <li><strong>Rewards</strong> — name, cost, icon</li>
+          <li><strong>Consequences</strong> — name, icon, description; and any assigned consequence records</li>
+          <li><strong>History</strong> — point transactions with timestamps, reasons, and fulfilment status</li>
+          <li><strong>Settings</strong> — parental preferences (approval mode, point caps, defaults)</li>
+          <li><strong>Account</strong> — email address, hashed password, notification preferences</li>
         </ul>
+        We recommend using first names or nicknames rather than full names, and not entering
+        sensitive information beyond what the reward system needs.
       </Section>
 
       <Section title="4. Cloud Sync & Data Transfer">
-        Cloud Sync is <strong>entirely optional</strong>. When enabled:
+        When Cloud Sync is enabled (desktop) or when using the web app:
         <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li>Data is transmitted over HTTPS to your Supabase project</li>
-          <li>All rows are protected by Row-Level Security: only your authenticated user ID can read or write them</li>
-          <li>Supabase infrastructure may be hosted within the EU or US depending on the region you select when creating your project. We recommend selecting a UK/EU region for GDPR compliance</li>
-          <li>You can disable Cloud Sync and delete your Supabase data at any time</li>
+          <li>Data is transmitted over HTTPS to {COMPANY}'s managed cloud database</li>
+          <li>Access controls ensure only your signed-in account can read or write your data</li>
+          <li>Infrastructure is hosted within the EU (London region)</li>
+          <li>You can export or delete all your data at any time — see section 6 below</li>
+        </ul>
+        <strong>You do not need to set up any external service or account</strong> to use cloud
+        features — {COMPANY} manages the infrastructure on your behalf.
+      </Section>
+
+      <Section title="5. Email Notifications">
+        Email notifications (weekly family digest, approval alerts) are <strong>entirely
+        optional</strong>. To enable them, simply enter your preferred email address in
+        Settings → Email notifications. No technical setup is required.
+        <ul className="list-disc pl-5 mt-1 space-y-1">
+          <li>Notification emails are sent by {COMPANY} on your behalf using our email delivery service</li>
+          <li>Only the email address you provide is used; it is not shared with any other party</li>
+          <li>You can turn off notifications at any time in Settings</li>
         </ul>
       </Section>
 
-      <Section title="5. Email Notifications & Resend">
-        Email notifications (weekly digest, approval alerts) are <strong>entirely optional</strong>
-        and require you to provide your own <strong>Resend API key</strong>. When configured:
+      <Section title="6. Exporting and Deleting Your Data">
+        You have full control over your data at all times:
         <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li>Emails are sent directly from your Resend account to the address you specify</li>
-          <li>{COMPANY} does not handle or see the contents of these emails</li>
-          <li>Your Resend API key is stored only in your local database and Supabase project</li>
-          <li>You can disable notifications at any time in Settings → Cloud Sync</li>
+          <li><strong>Export history</strong> — available in the History tab for individual children or all children combined</li>
+          <li><strong>Desktop backup</strong> — Settings → Backup &amp; Restore creates a full local backup file</li>
+          <li><strong>Delete account (web app)</strong> — Settings → Danger Zone permanently deletes your account and all associated data immediately</li>
+          <li><strong>Delete account (desktop)</strong> — email{' '}
+            <a href={`mailto:${CONTACT_EMAIL}`} className="underline text-dojo-primary">{CONTACT_EMAIL}</a>{' '}
+            and we will erase your cloud data within 30 days</li>
+          <li><strong>Uninstalling the desktop app</strong> removes the local database from your device</li>
         </ul>
       </Section>
 
-      <Section title="6. Data Portability & Deletion">
-        You have full control over your data:
-        <ul className="list-disc pl-5 mt-1 space-y-1">
-          <li><strong>Export</strong> — Settings → Backup &amp; Restore → Export Backup creates a full database backup file</li>
-          <li><strong>History CSV export</strong> — available in the History tab for individual children or all children</li>
-          <li><strong>Deletion</strong> — uninstalling the App removes the local database. To remove cloud data, delete your Supabase project or the relevant tables</li>
-        </ul>
-      </Section>
-
-      <Section title="7. Children's Data (UK GDPR Article 8 / COPPA)">
-        {PRODUCT} processes children's personal data (names and behavioural records) on behalf
-        of the parent or guardian who installs and controls the App. As the adult user you are
-        responsible for:
+      <Section title="7. Children's Data (UK GDPR / COPPA)">
+        {PRODUCT} processes children's personal data (names and behavioural records) solely on
+        the instructions of the parent or guardian who creates the account. As the adult user
+        you are responsible for:
         <ul className="list-disc pl-5 mt-1 space-y-1">
           <li>Ensuring you have appropriate authority to process your children's data</li>
           <li>Using the App in a manner that respects your children's dignity and wellbeing</li>
-          <li>Deciding whether and how long to retain historical behaviour records</li>
+          <li>Deciding how long to retain historical behaviour records</li>
         </ul>
-        {COMPANY} recommends using first names or nicknames rather than full names, and not
-        entering sensitive information beyond what is needed for the App's reward functionality.
       </Section>
 
       <Section title="8. Data Breach Notification">
-        In the event of a security incident that affects your personal data and poses a risk to
-        your rights and freedoms, we will notify you via the App or by email (if provided) within
-        72 hours of becoming aware of the breach, as required by UK GDPR Article 33.
+        In the event of a security incident that poses a risk to your rights and freedoms, we
+        will notify you via the App or by email within 72 hours of becoming aware of the breach,
+        as required by UK GDPR Article 33.
       </Section>
 
       <Section title="9. ICO Registration & Complaints">
@@ -378,7 +387,7 @@ function DataContent() {
         Water Lane, Wilmslow, Cheshire, SK9 5AF.
       </Section>
 
-      <Section title="10. Contact Our Data Lead">
+      <Section title="10. Contact">
         For any data protection enquiry, subject access request, or erasure request:<br />
         <strong>{COMPANY}</strong> · Company No. {COMPANY_NO} · Registered in {JURISDICTION}<br />
         Email: <a href={`mailto:${CONTACT_EMAIL}`} className="underline text-dojo-primary">{CONTACT_EMAIL}</a>
