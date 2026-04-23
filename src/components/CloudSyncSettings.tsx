@@ -122,16 +122,21 @@ export function CloudSyncSettings() {
 
   async function handleTestEmail() {
     if (!notifEmail) {
-      setEmailMsg('Enter a notification email address first, then save.');
+      setEmailMsg('Enter a notification email address first.');
       return;
     }
     setEmailBusy(true);
     setEmailMsg('Sending…');
-    const result = await window.dojo.cloudSendTestEmail({ apiKey: '', to: notifEmail });
-    setEmailBusy(false);
-    setEmailMsg(result.ok
-      ? '✅ Test email sent! Check your inbox.'
-      : `Failed — ${(result as { error?: string }).error ?? 'please try again later.'}`);
+    try {
+      const result = await window.dojo.cloudSendTestEmail({ apiKey: '', to: notifEmail });
+      setEmailMsg(result.ok
+        ? '✅ Test email sent! Check your inbox.'
+        : `Failed — ${(result as { ok: boolean; error?: string }).error ?? 'please try again later.'}`);
+    } catch {
+      setEmailMsg('Something went wrong. Check your connection and try again.');
+    } finally {
+      setEmailBusy(false);
+    }
   }
 
   if (loading) {

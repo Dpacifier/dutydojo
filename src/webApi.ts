@@ -1038,14 +1038,23 @@ export const webApi: DojoApi = {
   cloudSendTestEmail: async ({ to }) => {
     const { data: { session } } = await sb().auth.getSession();
     const token = session?.access_token;
-    if (!token) return { ok: false };
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'test', to }),
-    });
-    const body = await res.json().catch(() => ({}));
-    return res.ok ? { ok: true } : { ok: false, error: (body as { error?: string }).error };
+    if (!token) return { ok: false, error: 'Not signed in' };
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15_000);
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'test', to }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      const body = await res.json().catch(() => ({}));
+      return res.ok ? { ok: true } : { ok: false, error: (body as { error?: string }).error ?? `Error ${res.status}` };
+    } catch (e) {
+      const msg = e instanceof Error && e.name === 'AbortError' ? 'Request timed out' : 'Network error';
+      return { ok: false, error: msg };
+    }
   },
   cloudSendWeeklyDigest: async () => {
     const { data: { session } } = await sb().auth.getSession();
