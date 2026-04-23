@@ -34,7 +34,6 @@ export function CloudSyncSettings() {
   const [authMsg, setAuthMsg]   = useState('');
 
   // Email config form
-  const [resendKey, setResendKey]   = useState('');
   const [notifEmail, setNotifEmail] = useState('');
   const [weeklyDigest, setWeekly]   = useState(false);
   const [approvalAlerts, setAlerts] = useState(false);
@@ -106,29 +105,33 @@ export function CloudSyncSettings() {
   }
 
   async function handleSaveEmail() {
+    if (notifEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notifEmail)) {
+      setEmailMsg('Please enter a valid email address.');
+      return;
+    }
     setEmailBusy(true);
     setEmailMsg('');
     try {
-      await window.dojo.cloudSaveEmailConfig({ resendKey, notifEmail, weeklyDigest, approvalAlerts });
-      setEmailMsg('Email settings saved.');
-      await load();
+      const ok = await window.dojo.cloudSaveEmailConfig({ resendKey: '', notifEmail, weeklyDigest, approvalAlerts });
+      setEmailMsg(ok ? '✅ Notification settings saved.' : 'Failed to save. Please try again.');
+      if (ok) await load();
     } finally {
       setEmailBusy(false);
     }
   }
 
   async function handleTestEmail() {
-    if (!resendKey || !notifEmail) {
-      setEmailMsg('Enter your Resend API key and a notification email first.');
+    if (!notifEmail) {
+      setEmailMsg('Enter a notification email address first, then save.');
       return;
     }
     setEmailBusy(true);
     setEmailMsg('Sending…');
-    const result = await window.dojo.cloudSendTestEmail({ apiKey: resendKey, to: notifEmail });
+    const result = await window.dojo.cloudSendTestEmail({ apiKey: '', to: notifEmail });
     setEmailBusy(false);
     setEmailMsg(result.ok
-      ? 'Test email sent! Check your inbox.'
-      : 'Failed — check your Resend API key and sender domain.');
+      ? '✅ Test email sent! Check your inbox.'
+      : `Failed — ${(result as { error?: string }).error ?? 'please try again later.'}`);
   }
 
   if (loading) {
@@ -140,17 +143,6 @@ export function CloudSyncSettings() {
 
   return (
     <div className="space-y-6 max-w-2xl">
-
-      {/* Not configured warning */}
-      {!status?.configured && (
-        <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-2xl px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-          <span className="text-xl shrink-0">⚠️</span>
-          <div>
-            <div className="font-semibold mb-0.5">Supabase not configured</div>
-            <div>Copy <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">.env.example</code> to <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">.env</code>, fill in your Supabase URL and anon key, then restart. Run <code className="bg-amber-100 dark:bg-amber-900/50 px-1 rounded">supabase/schema.sql</code> in the Supabase SQL editor first.</div>
-          </div>
-        </div>
-      )}
 
       {/* ── Connection status ── */}
       <div className="dojo-card">
@@ -244,28 +236,16 @@ export function CloudSyncSettings() {
       {/* ── Email notifications ── */}
       <div className="dojo-card">
         <div className="font-display font-semibold text-lg mb-1">✉️ Email notifications</div>
-        <p className="text-xs text-dojo-muted mb-4">
-          Uses <strong>Resend</strong> — free up to 3,000 emails/month. Get your API key at <strong>resend.com</strong>.
-          For sign-up confirmation and password reset emails, configure Resend as the SMTP provider in your Supabase dashboard under Authentication → SMTP.
+        <p className="text-sm text-dojo-muted mb-4">
+          Enter the email address where you'd like to receive notifications. No setup required —
+          emails are sent automatically by DutyDojo.
         </p>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-dojo-muted mb-1">Resend API key</label>
-            <input
-              className="dojo-input w-full font-mono text-sm"
-              type="password"
-              placeholder="re_••••••••••••••••••••"
-              value={resendKey}
-              onChange={e => setResendKey(e.target.value)}
-            />
-            {status?.resendKey && !resendKey && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">✓ API key saved (leave blank to keep existing)</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-dojo-muted mb-1">Notification email</label>
+            <label className="block text-xs font-semibold text-dojo-muted mb-1 uppercase tracking-wide">
+              Notification email
+            </label>
             <input
               className="dojo-input w-full"
               type="email"
@@ -275,29 +255,42 @@ export function CloudSyncSettings() {
             />
           </div>
 
-          <div className="flex flex-col gap-2 py-1">
-            <label className="flex items-center gap-3 cursor-pointer select-none">
+          <div className="flex flex-col gap-3">
+            <label className={`flex items-start gap-3 cursor-pointer select-none p-3 rounded-xl border transition ${
+              weeklyDigest
+                ? 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-700'
+                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+            }`}>
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded accent-dojo-primary"
+                className="mt-0.5 w-4 h-4 rounded accent-dojo-primary shrink-0"
                 checked={weeklyDigest}
                 onChange={e => setWeekly(e.target.checked)}
               />
               <div>
-                <div className="text-sm font-medium">Weekly digest</div>
-                <div className="text-xs text-dojo-muted">Family summary every Monday at 8am</div>
+                <div className="text-sm font-semibold">📊 Weekly digest</div>
+                <div className="text-xs text-dojo-muted mt-0.5">
+                  A family summary email every Monday — balances, points earned, and streaks for each child.
+                </div>
               </div>
             </label>
-            <label className="flex items-center gap-3 cursor-pointer select-none">
+
+            <label className={`flex items-start gap-3 cursor-pointer select-none p-3 rounded-xl border transition ${
+              approvalAlerts
+                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-700'
+                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700'
+            }`}>
               <input
                 type="checkbox"
-                className="w-4 h-4 rounded accent-dojo-primary"
+                className="mt-0.5 w-4 h-4 rounded accent-dojo-primary shrink-0"
                 checked={approvalAlerts}
                 onChange={e => setAlerts(e.target.checked)}
               />
               <div>
-                <div className="text-sm font-medium">Approval alerts</div>
-                <div className="text-xs text-dojo-muted">Email when a child submits a behaviour for review</div>
+                <div className="text-sm font-semibold">✋ Approval alerts</div>
+                <div className="text-xs text-dojo-muted mt-0.5">
+                  Get an email the moment a child submits a behaviour waiting for your review.
+                </div>
               </div>
             </label>
           </div>
@@ -308,11 +301,11 @@ export function CloudSyncSettings() {
               disabled={emailBusy}
               onClick={handleSaveEmail}
             >
-              {emailBusy ? '…' : 'Save email settings'}
+              {emailBusy ? '⏳ Saving…' : 'Save notification settings'}
             </button>
             <button
-              className="dojo-btn-ghost text-sm"
-              disabled={emailBusy}
+              className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition disabled:opacity-50"
+              disabled={emailBusy || !notifEmail}
               onClick={handleTestEmail}
             >
               Send test email
@@ -320,7 +313,11 @@ export function CloudSyncSettings() {
           </div>
 
           {emailMsg && (
-            <div className={`text-sm px-3 py-2 rounded-xl ${emailMsg.startsWith('Failed') || emailMsg.startsWith('Enter') ? 'bg-red-50 dark:bg-red-950/30 text-dojo-danger' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'}`}>
+            <div className={`text-sm px-3 py-2 rounded-xl border ${
+              emailMsg.startsWith('✅')
+                ? 'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300'
+                : 'bg-red-50 border-red-100 text-dojo-danger dark:bg-red-950/30 dark:border-red-800'
+            }`}>
               {emailMsg}
             </div>
           )}

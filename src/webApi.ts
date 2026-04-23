@@ -999,10 +999,20 @@ export const webApi: DojoApi = {
   cloudStatus: async () => {
     const { data } = await sb().auth.getSession();
     const email = data.session?.user?.email ?? '';
+    if (!data.session) {
+      return { configured: true, connected: false, email: '', lastSync: '', resendKey: false, notifEmail: '', weeklyDigest: false, approvalAlerts: false };
+    }
+    // Read notification prefs from dd_settings
+    const { data: s } = await sb().from('dd_settings').select('notification_email,weekly_digest,approval_alerts').eq('user_id', uid()).maybeSingle();
     return {
-      configured: true, connected: !!data.session, email,
-      lastSync: ts(), resendKey: false, notifEmail: email,
-      weeklyDigest: false, approvalAlerts: false,
+      configured: true,
+      connected: true,
+      email,
+      lastSync: ts(),
+      resendKey: true,          // Always true on web — key is server-side
+      notifEmail:      String(s?.notification_email ?? ''),
+      weeklyDigest:    !!(s?.weekly_digest),
+      approvalAlerts:  !!(s?.approval_alerts),
     };
   },
   cloudSignUp:          async ({ email, password }) => {
@@ -1015,9 +1025,45 @@ export const webApi: DojoApi = {
   },
   cloudSignOut:         async () => { await sb().auth.signOut(); return true; },
   cloudSyncNow:         async () => ({ ok: true, pulled: 0 }),
-  cloudSaveEmailConfig: async () => false,
-  cloudSendTestEmail:   async () => ({ ok: false }),
-  cloudSendWeeklyDigest:async () => ({ ok: false }),
+  cloudSaveEmailConfig: async ({ notifEmail, weeklyDigest, approvalAlerts }) => {
+    const { error } = await sb().from('dd_settings').upsert({
+      user_id:            uid(),
+      notification_email: notifEmail,
+      weekly_digest:      weeklyDigest,
+      approval_alerts:    approvalAlerts,
+      updated_at:         ts(),
+    }, { onConflict: 'user_id' });
+    return !error;
+  },
+  cloudSendTestEmail: async ({ to }) => {
+    const { data: { session } } = await sb().auth.getSession();
+    const token = session?.access_token;
+    if (!token) return { ok: false };
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'test', to }),
+    });
+    const body = await res.json().catch(() => ({}));
+    return res.ok ? { ok: true } : { ok: false, error: (body as { error?: string }).error };
+  },
+  cloudSendWeeklyDigest: async () => {
+    const { data: { session } } = await sb().auth.getSession();
+    const token = session?.access_token;
+    if (!token) return { ok: false };
+    // Gather sibling snapshot for the digest
+    const children = await webApi.getSiblingComparison();
+    const { data: s } = await sb().from('dd_settings').select('notification_email').eq('user_id', uid()).maybeSingle();
+    const to = String(s?.notification_email ?? '');
+    if (!to) return { ok: false, error: 'No notification email saved' };
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'weekly_digest', to, children }),
+    });
+    const body = await res.json().catch(() => ({}));
+    return res.ok ? { ok: true } : { ok: false, error: (body as { error?: string }).error };
+  },
 };
 
 /**
