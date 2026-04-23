@@ -356,13 +356,12 @@ export function registerIpcHandlers(ipc: IpcMain) {
   });
 
   ipc.handle('cloud:saveEmailConfig', (_e, cfg: {
-    resendKey: string;
+    resendKey: string;   // ignored — key is server-side now
     notifEmail: string;
     weeklyDigest: boolean;
     approvalAlerts: boolean;
   }) => {
     saveCloudConfig({
-      resend_api_key:     cfg.resendKey,
       notification_email: cfg.notifEmail,
       weekly_digest:      cfg.weeklyDigest ? 1 : 0,
       approval_alerts:    cfg.approvalAlerts ? 1 : 0,
@@ -370,8 +369,8 @@ export function registerIpcHandlers(ipc: IpcMain) {
     return true;
   });
 
-  ipc.handle('cloud:sendTestEmail', async (_e, { apiKey, to }: { apiKey: string; to: string }) => {
-    const ok = await sendTestEmail(apiKey, to);
+  ipc.handle('cloud:sendTestEmail', async (_e, { to }: { apiKey?: string; to: string }) => {
+    const ok = await sendTestEmail(to);
     return { ok };
   });
 
@@ -392,7 +391,7 @@ export function registerIpcHandlers(ipc: IpcMain) {
       }).show();
     }
     // Email alert (fire & forget)
-    sendApprovalAlert(result.child_name, result.behaviour_name).catch(console.error);
+    sendApprovalAlert(result.child_name, result.behaviour_name, result.behaviour_points).catch(console.error);
     return result;
   });
 }

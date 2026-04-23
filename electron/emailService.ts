@@ -1,27 +1,30 @@
 /**
- * EmailService — sends transactional emails via the Resend API.
+ * emailService.ts — sends transactional emails via the DutyDojo send-email
+ * Edge Function (server-side Resend key, no API key needed from the user).
  *
- * Note: Supabase Auth emails (sign-up confirmation, password reset, magic link)
- * are sent automatically by Supabase. Configure Resend as the SMTP provider
- * in your Supabase project → Authentication → SMTP Settings.
- *
- * This service handles:
+ * Handles:
  *  • Weekly digest emails (scheduled weekly by main.ts)
- *  • Approval alert emails (triggered when a child submits a pending behaviour)
+ *  • Approval alert emails (triggered on pending:add)
+ *  • Test emails (triggered from Settings)
  */
 
 import { getDb } from './db/database';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const _env = (import.meta as any).env ?? {};
+const SUPABASE_URL = ((_env.VITE_SUPABASE_URL as string) ?? '');
+const EDGE_SEND    = `${SUPABASE_URL}/functions/v1/send-email`;
+
 interface CloudConfig {
-  resend_api_key: string;
+  access_token:       string;
   notification_email: string;
-  weekly_digest: number;
-  approval_alerts: number;
-  user_email: string;
+  weekly_digest:      number;
+  approval_alerts:    number;
+  user_email:         string;
 }
 
 function getConfig(): CloudConfig | null {
-  const db = getDb();
+  const db   = getDb();
   const stmt = db.prepare('SELECT * FROM cloud_config LIMIT 1');
   const rows: CloudConfig[] = [];
   while (stmt.step()) rows.push(stmt.getAsObject() as unknown as CloudConfig);
@@ -29,23 +32,25 @@ function getConfig(): CloudConfig | null {
   return rows[0] ?? null;
 }
 
-async function sendEmail(apiKey: string, payload: {
-  from: string;
-  to: string;
-  subject: string;
-  html: string;
-}): Promise<boolean> {
+/** Call the send-email Edge Function with the stored Supabase access token. */
+async function callEdge(token: string, payload: Record<string, unknown>): Promise<boolean> {
+  if (!SUPABASE_URL || !token) return false;
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15_000);
+    const res = await fetch(EDGE_SEND, {
+      method:  'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':  'application/json',
       },
-      body: JSON.stringify(payload),
+      body:   JSON.stringify(payload),
+      signal: controller.signal,
     });
+    clearTimeout(timer);
     if (!res.ok) {
-      console.error('[email] Resend error', res.status, await res.text());
+      const body = await res.json().catch(() => ({}));
+      console.error('[email] Edge Function error', res.status, body);
       return false;
     }
     return true;
@@ -55,43 +60,35 @@ async function sendEmail(apiKey: string, payload: {
   }
 }
 
+// ── Test email ────────────────────────────────────────────────────────────────
+
+export async function sendTestEmail(to: string): Promise<boolean> {
+  const cfg = getConfig();
+  if (!cfg?.access_token) return false;
+  return callEdge(cfg.access_token, { type: 'test', to });
+}
+
 // ── Approval alert ─────────────────────────────────────────────────────────────
 
-export async function sendApprovalAlert(childName: string, behaviourName: string): Promise<void> {
+export async function sendApprovalAlert(
+  childName: string,
+  behaviourName: string,
+  points = 0,
+): Promise<void> {
   const cfg = getConfig();
-  if (!cfg?.resend_api_key || !cfg.approval_alerts) return;
+  if (!cfg?.access_token || !cfg.approval_alerts) return;
   const to = cfg.notification_email || cfg.user_email;
   if (!to) return;
-
-  await sendEmail(cfg.resend_api_key, {
-    from: 'DutyDojo <notifications@dutydojo.app>',
-    to,
-    subject: `⭐ ${childName} submitted a behaviour for approval`,
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="color:#6366f1">DutyDojo – Approval Needed</h2>
-        <p><strong>${childName}</strong> has submitted <strong>"${behaviourName}"</strong> and is waiting for your approval.</p>
-        <p>Open the DutyDojo app and go to <strong>Approvals</strong> to review.</p>
-        <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-        <p style="color:#94a3b8;font-size:12px">DutyDojo · You're receiving this because approval alerts are enabled.</p>
-      </div>
-    `,
+  await callEdge(cfg.access_token, {
+    type: 'approval_alert', to, childName, behaviourName, points,
   });
 }
 
 // ── Weekly digest ─────────────────────────────────────────────────────────────
 
-interface ChildSummary {
-  name: string;
-  avatar_emoji: string;
-  balance: number;
-  earned_this_week: number;
-  goal_points: number;
-}
-
 export async function sendWeeklyDigest(): Promise<boolean> {
   const cfg = getConfig();
-  if (!cfg?.resend_api_key || !cfg.weekly_digest) return false;
+  if (!cfg?.access_token || !cfg.weekly_digest) return false;
   const to = cfg.notification_email || cfg.user_email;
   if (!to) return false;
 
@@ -99,20 +96,19 @@ export async function sendWeeklyDigest(): Promise<boolean> {
 
   // Gather per-child weekly stats
   const childrenStmt = db.prepare('SELECT * FROM children WHERE archived = 0');
-  const children: ChildSummary[] = [];
-  while (childrenStmt.step()) {
-    const c = childrenStmt.getAsObject() as { id: number; name: string; avatar_emoji: string; goal_points: number };
+  const children: Array<{ name: string; balance: number; earned: number; streak: number }> = [];
 
-    // Current balance
+  while (childrenStmt.step()) {
+    const c = childrenStmt.getAsObject() as { id: number; name: string };
+
     const balStmt = db.prepare(
-      "SELECT COALESCE(SUM(delta), 0) AS bal FROM history WHERE child_id = ?"
+      'SELECT COALESCE(SUM(delta), 0) AS bal FROM history WHERE child_id = ?'
     );
     balStmt.bind([c.id]);
     balStmt.step();
-    const bal = (balStmt.getAsObject() as { bal: number }).bal;
+    const balance = (balStmt.getAsObject() as { bal: number }).bal;
     balStmt.free();
 
-    // Earned this week (positive deltas)
     const earnStmt = db.prepare(
       "SELECT COALESCE(SUM(delta), 0) AS earned FROM history WHERE child_id = ? AND delta > 0 AND created_at >= datetime('now', '-7 days')"
     );
@@ -121,60 +117,30 @@ export async function sendWeeklyDigest(): Promise<boolean> {
     const earned = (earnStmt.getAsObject() as { earned: number }).earned;
     earnStmt.free();
 
-    children.push({ name: c.name, avatar_emoji: c.avatar_emoji, balance: bal, earned_this_week: earned, goal_points: c.goal_points });
+    // Streak (days with at least one positive event)
+    const streakStmt = db.prepare(
+      "SELECT DISTINCT date(created_at) AS d FROM history WHERE child_id = ? AND delta > 0 ORDER BY d DESC LIMIT 365"
+    );
+    streakStmt.bind([c.id]);
+    let streak = 0;
+    const days: string[] = [];
+    while (streakStmt.step()) {
+      days.push((streakStmt.getAsObject() as { d: string }).d);
+    }
+    streakStmt.free();
+    const base = new Date();
+    for (let i = 0; i < days.length; i++) {
+      const expected = new Date(base);
+      expected.setDate(base.getDate() - i);
+      if (days[i] !== expected.toISOString().slice(0, 10)) break;
+      streak++;
+    }
+
+    children.push({ name: c.name, balance, earned, streak });
   }
   childrenStmt.free();
 
   if (children.length === 0) return false;
 
-  const rows = children.map(c => `
-    <tr>
-      <td style="padding:10px 12px">${c.avatar_emoji} ${c.name}</td>
-      <td style="padding:10px 12px;text-align:center"><strong>+${c.earned_this_week}</strong></td>
-      <td style="padding:10px 12px;text-align:center">${c.balance} / ${c.goal_points}</td>
-    </tr>
-  `).join('');
-
-  const html = `
-    <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">
-      <h2 style="color:#6366f1">🥋 DutyDojo – Weekly Family Summary</h2>
-      <p>Here's how your family did this week:</p>
-      <table style="width:100%;border-collapse:collapse;margin:16px 0">
-        <thead>
-          <tr style="background:#f1f5f9">
-            <th style="padding:10px 12px;text-align:left">Child</th>
-            <th style="padding:10px 12px;text-align:center">Earned this week</th>
-            <th style="padding:10px 12px;text-align:center">Balance / Goal</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-      <p style="color:#94a3b8;font-size:12px">DutyDojo · Weekly digest every Monday.</p>
-    </div>
-  `;
-
-  return sendEmail(cfg.resend_api_key, {
-    from: 'DutyDojo <digest@dutydojo.app>',
-    to,
-    subject: `🥋 DutyDojo weekly summary`,
-    html,
-  });
-}
-
-// ── Test email ────────────────────────────────────────────────────────────────
-
-export async function sendTestEmail(apiKey: string, to: string): Promise<boolean> {
-  return sendEmail(apiKey, {
-    from: 'DutyDojo <notifications@dutydojo.app>',
-    to,
-    subject: '✅ DutyDojo – Email connected',
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
-        <h2 style="color:#6366f1">🥋 DutyDojo</h2>
-        <p>Email notifications are working correctly.</p>
-        <p style="color:#94a3b8;font-size:12px">You'll receive weekly digests and approval alerts at this address.</p>
-      </div>
-    `,
-  });
+  return callEdge(cfg.access_token, { type: 'weekly_digest', to, children });
 }
