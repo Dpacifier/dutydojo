@@ -34,6 +34,54 @@ export function initWebApi(userId: string): void {
   _userId = userId;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).dojo = webApi;
+  // Seed default data for brand-new accounts (fire-and-forget)
+  seedDefaults(userId).catch(console.error);
+}
+
+/** Seeds behaviours, consequences and rewards for a new user if their tables are empty. */
+async function seedDefaults(userId: string): Promise<void> {
+  const client = sb();
+  const now = new Date().toISOString();
+  const id = () => Date.now() * 1000 + Math.floor(Math.random() * 999);
+
+  // Only seed if the user has no behaviours yet (brand-new account)
+  const { count } = await client
+    .from('dd_behaviours')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  if ((count ?? 0) > 0) return;
+
+  // ── Default behaviours ──────────────────────────────────────────────────────
+  await client.from('dd_behaviours').insert([
+    { user_id: userId, local_id: id(), name: 'Made the bed',        kind: 'positive', points:  5, icon: '🛏️', active: true, daily_limit: 0, category: '', updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Tidied room',         kind: 'positive', points: 10, icon: '🧹', active: true, daily_limit: 0, category: '', updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Helped with dishes',  kind: 'positive', points: 10, icon: '🍽️', active: true, daily_limit: 0, category: '', updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Finished homework',   kind: 'positive', points: 15, icon: '📚', active: true, daily_limit: 0, category: '', updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Was kind to sibling', kind: 'positive', points: 10, icon: '💛', active: true, daily_limit: 0, category: '', updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Not listening',       kind: 'negative', points: -5, icon: '🙉', active: true, daily_limit: 0, category: '', updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Left mess behind',    kind: 'negative', points: -5, icon: '🧻', active: true, daily_limit: 0, category: '', updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Shouted / rude',      kind: 'negative', points:-10, icon: '😠', active: true, daily_limit: 0, category: '', updated_at: now },
+  ]);
+
+  // ── Default consequences ────────────────────────────────────────────────────
+  await client.from('dd_consequences').insert([
+    { user_id: userId, local_id: id(), icon: '📵', name: 'No screen time',  description: 'All devices off until further notice.',              active: true, updated_at: now },
+    { user_id: userId, local_id: id(), icon: '🎮', name: 'No video games',  description: 'Gaming privileges suspended for the day.',           active: true, updated_at: now },
+    { user_id: userId, local_id: id(), icon: '🛏️', name: 'Early bedtime',   description: 'Bedtime moved 30 minutes earlier tonight.',          active: true, updated_at: now },
+    { user_id: userId, local_id: id(), icon: '🍪', name: 'No treats',       description: 'No sweets, snacks, or dessert today.',               active: true, updated_at: now },
+    { user_id: userId, local_id: id(), icon: '🏠', name: 'No playdates',    description: 'Social outings are on hold for now.',                active: true, updated_at: now },
+    { user_id: userId, local_id: id(), icon: '📺', name: 'No TV',           description: 'Television is off limits for today.',                active: true, updated_at: now },
+    { user_id: userId, local_id: id(), icon: '🚲', name: 'No outdoor play', description: 'Outdoor activities suspended until things improve.', active: true, updated_at: now },
+    { user_id: userId, local_id: id(), icon: '📚', name: 'Extra reading',   description: '20 minutes of reading added to the daily routine.',  active: true, updated_at: now },
+  ]);
+
+  // ── Default rewards ─────────────────────────────────────────────────────────
+  await client.from('dd_rewards').insert([
+    { user_id: userId, local_id: id(), name: '30 min extra screen time', cost:  30, icon: '📱', active: true, updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Pick family movie',        cost:  50, icon: '🎬', active: true, updated_at: now },
+    { user_id: userId, local_id: id(), name: 'Ice cream trip',           cost:  80, icon: '🍦', active: true, updated_at: now },
+    { user_id: userId, local_id: id(), name: 'New small toy',            cost: 150, icon: '🧸', active: true, updated_at: now },
+  ]);
 }
 
 // ── Mappers ───────────────────────────────────────────────────────────────────
