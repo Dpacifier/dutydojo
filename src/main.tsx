@@ -26,40 +26,74 @@ type AppState = 'loading' | 'login' | 'ready' | 'recovery';
 
 /** Browser/PWA root — manages Supabase auth state before mounting App. */
 function WebAppRoot() {
+  // Capture the URL state SYNCHRONOUSLY at mount time, before Supabase cleans it up.
+  //
+  // Password-reset links come in two forms depending on Supabase's flow setting:
+  //   Implicit flow: dutydojo.com/#access_token=...&type=recovery  → hash contains "type=recovery"
+  //   PKCE flow:     dutydojo.com?code=xxx                         → search contains "code="
+  //
+  // With PKCE, after Supabase exchanges the code it fires SIGNED_IN (not PASSWORD_RECOVERY)
+  // and then calls history.replaceState to strip the ?code= from the URL. Capturing the
+  // flag here ensures we still know it was a recovery link when SIGNED_IN arrives.
+  const arrivedViaRecoveryLink = useRef(
+    window.location.hash.includes('type=recovery') ||
+    window.location.search.includes('code=')
+  );
+
   const [state, setState] = useState<AppState>('loading');
-  const recoveryMode      = useRef(false);
+  const inRecoveryMode    = useRef(false);
 
   useEffect(() => {
     import('./webApi').then(({ getClient, initWebApi }) => {
       const sb = getClient();
 
       sb.auth.onAuthStateChange((event, session) => {
+
+        // ── Explicit recovery event (implicit-flow reset links) ──────────────
         if (event === 'PASSWORD_RECOVERY') {
-          // User arrived via a password-reset link (PKCE or implicit flow).
-          recoveryMode.current = true;
+          inRecoveryMode.current = true;
           setState('recovery');
+          return;
+        }
 
-        } else if (event === 'SIGNED_IN' && !recoveryMode.current) {
-          // Normal sign-in.
-          initWebApi(session!.user.id);
-          setState('ready');
+        // ── SIGNED_IN ────────────────────────────────────────────────────────
+        if (event === 'SIGNED_IN') {
+          if (arrivedViaRecoveryLink.current && !inRecoveryMode.current) {
+            // PKCE recovery code was exchanged → show the set-new-password screen
+            // instead of the app.  Clear the flag so subsequent sign-ins behave
+            // normally (e.g. after the user resets their password and signs in again).
+            inRecoveryMode.current      = true;
+            arrivedViaRecoveryLink.current = false;
+            setState('recovery');
+          } else if (!inRecoveryMode.current) {
+            // Normal sign-in.
+            initWebApi(session!.user.id);
+            setState('ready');
+          }
+          // If inRecoveryMode is true a SIGNED_IN can arrive; ignore it — the
+          // user is still on the set-new-password screen.
+          return;
+        }
 
-        } else if (event === 'INITIAL_SESSION') {
-          if (session && !recoveryMode.current) {
-            // Existing session on page load/refresh.
+        // ── INITIAL_SESSION ──────────────────────────────────────────────────
+        if (event === 'INITIAL_SESSION') {
+          if (session && !arrivedViaRecoveryLink.current) {
+            // Existing session on page refresh — go straight to the app.
             initWebApi(session.user.id);
             setState('ready');
-          } else if (!session) {
-            // No session yet. If the URL has ?code= Supabase is still exchanging
-            // a PKCE token — keep showing the loading spinner until PASSWORD_RECOVERY
-            // or SIGNED_IN fires. If there is no code, go straight to login.
-            const hasPkceCode = window.location.search.includes('code=');
-            if (!hasPkceCode) setState('login');
-            // else: stay 'loading' — the next event will resolve the state.
+          } else if (!session && !arrivedViaRecoveryLink.current) {
+            // No session, no recovery link — show login.
+            setState('login');
           }
+          // If arrivedViaRecoveryLink is true, stay on 'loading' — the PKCE
+          // exchange is in progress; SIGNED_IN / PASSWORD_RECOVERY will follow.
+          return;
+        }
 
-        } else if (event === 'SIGNED_OUT') {
-          recoveryMode.current = false;
+        // ── SIGNED_OUT ───────────────────────────────────────────────────────
+        if (event === 'SIGNED_OUT') {
+          inRecoveryMode.current      = false;
+          arrivedViaRecoveryLink.current = false;
           setState('login');
         }
       });
@@ -81,7 +115,8 @@ function WebAppRoot() {
     return (
       <SetNewPasswordLazy
         onDone={() => {
-          recoveryMode.current = false;
+          inRecoveryMode.current      = false;
+          arrivedViaRecoveryLink.current = false;
           setState('login');
         }}
       />
