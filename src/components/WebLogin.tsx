@@ -5,14 +5,15 @@ type Mode = 'login' | 'signup' | 'reset';
 
 interface Props {
   onSuccess: () => void;
+  initialError?: string;
 }
 
-export function WebLogin({ onSuccess }: Props) {
+export function WebLogin({ onSuccess, initialError }: Props) {
   const [mode, setMode]         = useState<Mode>('login');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
-  const [error, setError]       = useState('');
+  const [error, setError]       = useState(initialError ?? '');
   const [loading, setLoading]   = useState(false);
   const [done, setDone]         = useState(false);   // signup confirmation sent
   const [resetSent, setResetSent] = useState(false); // password-reset email sent

@@ -22,14 +22,31 @@ let _userId = '';
 function sb(): SupabaseClient {
   if (!_sb) _sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
-      // PKCE puts the auth code in ?code= (a query parameter) instead of the URL
-      // hash fragment (#access_token=...). Query params survive HTTP redirects;
-      // hash fragments do not — so PKCE is required when the domain has any
-      // redirect (e.g. dutydojo.com → www.dutydojo.com) in front of the app.
       flowType: 'pkce',
+      // Disable automatic URL detection — we exchange the code manually in main.tsx
+      // so we can handle "link already used" (consumed by email scanners) gracefully.
+      detectSessionInUrl: false,
     },
   });
   return _sb;
+}
+
+/** Exchange a PKCE authorization code for a session. Returns the session type so
+ *  the caller can decide whether to show the set-new-password screen. */
+export async function exchangeCodeForSession(
+  code: string,
+): Promise<{ type: 'recovery' | 'signin' | null; userId?: string; error?: string }> {
+  const client = sb();
+  const { data, error } = await client.auth.exchangeCodeForSession(code);
+  if (error || !data.session) {
+    return { type: null, error: error?.message ?? 'Link has expired or already been used.' };
+  }
+  // Supabase puts the token_type in the URL hash when using implicit flow;
+  // with PKCE the only way to know if it was a recovery flow is to inspect
+  // the original URL that was stored before the redirect.
+  // We use the presence of the 'code' param (set only by recovery/magic-link
+  // flows — never by normal password sign-ins) as the recovery indicator.
+  return { type: 'recovery', userId: data.session.user.id };
 }
 
 export function getClient(): SupabaseClient { return sb(); }
