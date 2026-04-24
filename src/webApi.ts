@@ -1148,17 +1148,18 @@ export async function getCoachMessage(params: {
     if (cached) return cached;
   } catch { /* localStorage not available */ }
 
-  // Need a live Supabase session to call the Edge Function
-  const { data: { session } } = await sb().auth.getSession();
-  const token = session?.access_token;
-  if (!token) return null;
+  // Use the public anon key — no session required (coach message is non-sensitive)
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
 
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 12_000);
     const res = await fetch(`${SUPABASE_URL}/functions/v1/dojo-coach`, {
       method:  'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: {
+        'apikey':       SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json',
+      },
       body:    JSON.stringify(params),
       signal:  controller.signal,
     });
@@ -1215,8 +1216,6 @@ export async function deleteWebAccount(password: string): Promise<{ ok: boolean;
   await sb().auth.signOut();
   return { ok: true };
 }
-      body:    JSON.stringify(params),
-      signal:  controller.signal,
     });
     clearTimeout(timer);
 
