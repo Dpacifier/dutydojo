@@ -1,8 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const ANTHROPIC_API_KEY       = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
-const SUPABASE_URL            = Deno.env.get('SUPABASE_URL') ?? '';
-const SUPABASE_SERVICE_ROLE   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const OPENAI_API_KEY        = Deno.env.get('OPENAI_API_KEY') ?? '';
+const SUPABASE_URL          = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
     // ── Build prompts ─────────────────────────────────────────────────────────
     const pct = goal > 0 ? Math.round((points / goal) * 100) : 0;
 
-    const system = `You are Dojo Coach, a warm and encouraging personal coach for children using the DutyDojo family reward app.
+    const systemPrompt = `You are Dojo Coach, a warm and encouraging personal coach for children using the DutyDojo family reward app.
 Write a short daily message (2–3 sentences max) for a child. Rules:
 - Use simple, upbeat language a child aged 6–14 can understand.
 - Focus on effort, character, and growth — not just points or prizes.
@@ -63,32 +63,34 @@ Write a short daily message (2–3 sentences max) for a child. Rules:
     parts.push('Write a personalised daily coach message for this child.');
     const userPrompt = parts.join('\n');
 
-    // ── Call Claude ───────────────────────────────────────────────────────────
-    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    // ── Call OpenAI ───────────────────────────────────────────────────────────
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'x-api-key':          ANTHROPIC_API_KEY,
-        'anthropic-version':  '2023-06-01',
-        'content-type':       'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type':  'application/json',
       },
       body: JSON.stringify({
-        model:      'claude-haiku-4-5-20251001',
-        max_tokens: 220,
-        system,
-        messages: [{ role: 'user', content: userPrompt }],
+        model:       'gpt-4o-mini',
+        max_tokens:  220,
+        temperature: 0.85,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt   },
+        ],
       }),
     });
 
-    if (!claudeRes.ok) {
-      const errText = await claudeRes.text();
-      console.error('Claude API error:', errText);
+    if (!openaiRes.ok) {
+      const errText = await openaiRes.text();
+      console.error('OpenAI API error:', errText);
       return json({ error: 'AI unavailable' }, 502);
     }
 
-    const claudeJson = await claudeRes.json() as {
-      content?: Array<{ type: string; text: string }>;
+    const openaiJson = await openaiRes.json() as {
+      choices?: Array<{ message?: { content?: string } }>;
     };
-    const message = claudeJson.content?.find((b) => b.type === 'text')?.text
+    const message = openaiJson.choices?.[0]?.message?.content?.trim()
       ?? "You're doing amazing today — keep it up! 🌟";
 
     return json({ message });
