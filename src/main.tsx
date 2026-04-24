@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
@@ -26,24 +26,37 @@ type AppState = 'loading' | 'login' | 'ready' | 'recovery';
 
 /** Browser/PWA root — manages Supabase auth state before mounting App. */
 function WebAppRoot() {
-  const [state, setState] = useState<AppState>('loading');
+  // Check the URL hash SYNCHRONOUSLY before any async work.
+  // When a user clicks a password-reset link the URL contains #type=recovery.
+  // Supabase processes this hash immediately on client init, so by the time our
+  // dynamic import resolves the onAuthStateChange event has already fired.
+  // Detecting the hash here lets us render the correct screen without relying
+  // on catching that first event.
+  const isRecoveryLink = window.location.hash.includes('type=recovery');
+
+  const [state, setState]   = useState<AppState>(isRecoveryLink ? 'recovery' : 'loading');
+  const recoveryMode        = useRef(isRecoveryLink);
 
   useEffect(() => {
     import('./webApi').then(({ getClient, initWebApi }) => {
       const sb = getClient();
 
-      // onAuthStateChange fires with INITIAL_SESSION on page load AND on sign-in/sign-out.
-      // PASSWORD_RECOVERY fires when the user lands via a reset-password email link.
       sb.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
-          // Don't call initWebApi yet — just show the set-new-password form.
+          // Supabase detected the recovery token — stay on the reset screen.
+          recoveryMode.current = true;
           setState('recovery');
-        } else if (session) {
+        } else if (session && !recoveryMode.current) {
+          // Normal sign-in or page refresh with existing session.
           initWebApi(session.user.id);
           setState('ready');
-        } else {
+        } else if (!session) {
+          // Signed out (including after password reset completes).
+          recoveryMode.current = false;
           setState('login');
         }
+        // If session exists but recoveryMode is true, the user is authenticated
+        // via the recovery token — keep showing SetNewPassword, don't go to App.
       });
     });
   }, []);
@@ -60,7 +73,14 @@ function WebAppRoot() {
   }
 
   if (state === 'recovery') {
-    return <SetNewPasswordLazy onDone={() => setState('login')} />;
+    return (
+      <SetNewPasswordLazy
+        onDone={() => {
+          recoveryMode.current = false;
+          setState('login');
+        }}
+      />
+    );
   }
 
   if (state === 'ready') return <App />;
