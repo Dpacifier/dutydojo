@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data & GDPR — DutyDojo</title>
+  <meta name="description" content="How DutyDojo stores, processes, and protects your data. GDPR compliance information." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans:['Inter','sans-serif'], display:['"Plus Jakarta Sans"','sans-serif'] },
+          colors: { brand:{50:'#eef2ff',100:'#e0e7ff',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',900:'#312e81'} }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+<nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 font-display font-bold text-xl text-slate-900"><span class="text-2xl">🥋</span> DutyDojo</a>
+    <a href="/" class="text-sm text-brand-600 font-semibold hover:text-brand-700 transition">← Back to home</a>
+  </div>
+</nav>
+
+<main class="pt-28 pb-20 px-6">
+  <div class="max-w-3xl mx-auto">
+
+    <div class="flex gap-2 mb-8 flex-wrap">
+      <a href="/terms" class="px-4 py-2 rounded-xl text-sm font-semibold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">📋 Terms &amp; Conditions</a>
+      <a href="/privacy" class="px-4 py-2 rounded-xl text-sm font-semibold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">🔒 Privacy Policy</a>
+      <a href="/data" class="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-500 text-white shadow-sm">🛡️ Data &amp; GDPR</a>
+    </div>
+
+    <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 md:p-12">
+      <h1 class="font-display text-3xl font-bold text-slate-900 mb-1">Data &amp; GDPR</h1>
+      <p class="text-sm text-slate-400 mb-8">Effective 23 April 2026 · Switch IT Global Limited · Co. No. 11001626</p>
+
+      <div class="space-y-7 text-sm leading-relaxed text-slate-600">
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">1. How DutyDojo Stores Your Data</h2>
+          <p>DutyDojo is available as a <strong>Windows desktop app</strong> and a <strong>web app</strong> (accessible from any browser or installable on your phone).</p>
+          <p class="mt-2"><strong>Web app:</strong> All data is stored in Switch IT Global Limited's secure cloud, hosted in the EU. You sign in with your email address and password — no technical setup required.</p>
+          <p class="mt-2"><strong>Desktop app:</strong> Data is stored locally on your computer by default. You can optionally enable <strong>Cloud Sync</strong> in Settings to back up your data to our cloud and access it across multiple devices.</p>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">2. Who Controls Your Data</h2>
+          <ul class="list-disc pl-5 space-y-2">
+            <li><strong>You (the parent or guardian)</strong> are the <em>data controller</em> for all personal data you enter — your children's names, behaviour logs, and point history. You decide what is recorded and how long it is kept.</li>
+            <li><strong>Switch IT Global Limited</strong> acts as a <em>data processor</em> on your behalf. We store and secure your data using our cloud infrastructure but we do not use your family data for any other purpose.</li>
+            <li><strong>Supabase</strong> is our cloud database provider and acts as a sub-processor. Supabase is GDPR-compliant; their data processing agreement is available at <a href="https://supabase.com/privacy" class="text-brand-600 hover:underline">supabase.com/privacy</a>. Data is hosted in the EU.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">3. What Data Is Stored</h2>
+          <p class="mb-2">The following information may be stored, depending on how you use the app:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Children</strong> — name, avatar, goal points, consequence threshold, theme colour, notes</li>
+            <li><strong>Behaviours</strong> — name, kind (positive/negative), points value, icon, daily limit, category</li>
+            <li><strong>Rewards</strong> — name, cost, icon</li>
+            <li><strong>Consequences</strong> — name, icon, description; and any assigned consequence records</li>
+            <li><strong>History</strong> — point transactions with timestamps, reasons, and fulfilment status</li>
+            <li><strong>Settings</strong> — parental preferences (approval mode, point caps, defaults)</li>
+            <li><strong>Account</strong> — email address, hashed password, notification preferences</li>
+          </ul>
+          <p class="mt-2">We recommend using first names or nicknames rather than full names, and not entering sensitive information beyond what the reward system needs.</p>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">4. Cloud Sync &amp; Data Transfer</h2>
+          <p class="mb-2">When Cloud Sync is enabled (desktop) or when using the web app:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Data is transmitted over HTTPS to Switch IT Global Limited's managed cloud database</li>
+            <li>Access controls ensure only your signed-in account can read or write your data</li>
+            <li>Infrastructure is hosted within the EU (London region)</li>
+            <li>You can export or delete all your data at any time — see section 6 below</li>
+          </ul>
+          <p class="mt-2"><strong>You do not need to set up any external service or account</strong> to use cloud features — Switch IT Global Limited manages the infrastructure on your behalf.</p>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">5. Email Notifications</h2>
+          <p>Email notifications (weekly family digest, approval alerts) are <strong>entirely optional</strong>. To enable them, simply enter your preferred email address in Settings → Email notifications. No technical setup is required.</p>
+          <ul class="list-disc pl-5 mt-2 space-y-1">
+            <li>Notification emails are sent by Switch IT Global Limited on your behalf using our email delivery service (Resend)</li>
+            <li>Only the email address you provide is used; it is not shared with any other party</li>
+            <li>You can turn off notifications at any time in Settings</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">6. Exporting and Deleting Your Data</h2>
+          <p class="mb-2">You have full control over your data at all times:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>Export history</strong> — available in the History tab for individual children or all children combined</li>
+            <li><strong>Desktop backup</strong> — Settings → Backup &amp; Restore creates a full local backup file</li>
+            <li><strong>Delete account (web app)</strong> — Settings → Danger Zone permanently deletes your account and all associated data immediately</li>
+            <li><strong>Delete account (desktop)</strong> — email <a href="mailto:legal@dutydojo.com" class="text-brand-600 hover:underline">legal@dutydojo.com</a> and we will erase your cloud data within 30 days</li>
+            <li><strong>Uninstalling the desktop app</strong> removes the local database from your device</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">7. Children's Data (UK GDPR / COPPA)</h2>
+          <p class="mb-2">DutyDojo processes children's personal data (names and behavioural records) solely on the instructions of the parent or guardian who creates the account. As the adult user you are responsible for:</p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li>Ensuring you have appropriate authority to process your children's data</li>
+            <li>Using the App in a manner that respects your children's dignity and wellbeing</li>
+            <li>Deciding how long to retain historical behaviour records</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">8. Data Breach Notification</h2>
+          <p>In the event of a security incident that poses a risk to your rights and freedoms, we will notify you via the App or by email within 72 hours of becoming aware of the breach, as required by UK GDPR Article 33.</p>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">9. ICO Registration &amp; Complaints</h2>
+          <p>Switch IT Global Limited is registered with the Information Commissioner's Office (ICO) as required under UK data protection law. If you have a complaint about how we handle personal data, you may contact the ICO at <a href="https://ico.org.uk" class="text-brand-600 hover:underline">ico.org.uk</a> or by post at Wycliffe House, Water Lane, Wilmslow, Cheshire, SK9 5AF.</p>
+        </section>
+
+        <section>
+          <h2 class="font-semibold text-slate-900 text-base mb-2">10. Contact</h2>
+          <p>For any data protection enquiry, subject access request, or erasure request:<br />
+          <strong>Switch IT Global Limited</strong> · Company No. 11001626 · Registered in England and Wales<br />
+          Email: <a href="mailto:legal@dutydojo.com" class="text-brand-600 hover:underline">legal@dutydojo.com</a></p>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="bg-slate-900 text-slate-400 py-8 px-6 text-xs text-center">
+  <p>&copy; 2025 Switch IT Global Limited &middot; Company No. 11001626 &middot; Registered in England and Wales</p>
+</footer>
+</body>
+</html>
