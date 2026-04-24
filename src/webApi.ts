@@ -84,8 +84,12 @@ async function seedDefaults(userId: string): Promise<void> {
   if ((rCount ?? 0) === 0) {
     await client.from('dd_rewards').insert([
       { user_id: userId, local_id: id(), name: '30 min extra screen time', cost:  30, icon: '📱', active: true, updated_at: now },
+      { user_id: userId, local_id: id(), name: 'Choose dinner tonight',    cost:  40, icon: '🍕', active: true, updated_at: now },
       { user_id: userId, local_id: id(), name: 'Pick family movie',        cost:  50, icon: '🎬', active: true, updated_at: now },
+      { user_id: userId, local_id: id(), name: 'Stay up 30 min later',     cost:  60, icon: '🌙', active: true, updated_at: now },
       { user_id: userId, local_id: id(), name: 'Ice cream trip',           cost:  80, icon: '🍦', active: true, updated_at: now },
+      { user_id: userId, local_id: id(), name: 'Day out — you choose',     cost: 100, icon: '🎡', active: true, updated_at: now },
+      { user_id: userId, local_id: id(), name: 'New book of your choice',  cost: 120, icon: '📖', active: true, updated_at: now },
       { user_id: userId, local_id: id(), name: 'New small toy',            cost: 150, icon: '🧸', active: true, updated_at: now },
     ]);
   }
@@ -1062,6 +1066,12 @@ export const webApi: DojoApi = {
       return { ok: false, error: e instanceof Error ? e.message : 'Network error' };
     }
   },
+  cloudResetPassword: async (email: string) => {
+    const { error } = await sb().auth.resetPasswordForEmail(email);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  },
+
   cloudSendWeeklyDigest: async () => {
     const { data: { session } } = await sb().auth.getSession();
     const token = session?.access_token;

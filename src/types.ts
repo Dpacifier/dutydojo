@@ -282,6 +282,7 @@ export type DojoApi = {
   cloudSaveEmailConfig: (payload: { resendKey: string; notifEmail: string; weeklyDigest: boolean; approvalAlerts: boolean }) => Promise<boolean>;
   cloudSendTestEmail: (payload: { apiKey: string; to: string }) => Promise<{ ok: boolean }>;
   cloudSendWeeklyDigest: () => Promise<{ ok: boolean }>;
+  cloudResetPassword: (email: string) => Promise<{ ok: boolean; error?: string }>;
 };
 
 declare global {

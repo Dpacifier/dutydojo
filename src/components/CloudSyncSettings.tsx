@@ -28,6 +28,10 @@ export function CloudSyncSettings() {
 
   // Auth form
   const [authMode, setAuthMode] = useState<'signIn' | 'signUp'>('signIn');
+  const [resetScreen, setResetScreen] = useState(false);
+  const [resetEmail, setResetEmail]   = useState('');
+  const [resetMsg, setResetMsg]       = useState('');
+  const [resetBusy, setResetBusy]     = useState(false);
   const [email, setEmail]       = useState('');
   const [password, setPw]       = useState('');
   const [authBusy, setAuthBusy] = useState(false);
@@ -83,6 +87,25 @@ export function CloudSyncSettings() {
       }
     } finally {
       setAuthBusy(false);
+    }
+  }
+
+  async function handleReset() {
+    if (!resetEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
+      setResetMsg('Enter a valid email address.');
+      return;
+    }
+    setResetBusy(true);
+    setResetMsg('');
+    try {
+      const res = await window.dojo.cloudResetPassword(resetEmail.trim());
+      if (res.ok) {
+        setResetMsg('✅ Check your email for a password reset link.');
+      } else {
+        setResetMsg(res.error ?? 'Failed to send reset email.');
+      }
+    } finally {
+      setResetBusy(false);
     }
   }
 
@@ -201,39 +224,89 @@ export function CloudSyncSettings() {
               ))}
             </div>
 
-            <input
-              className="dojo-input w-full"
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-            <input
-              className="dojo-input w-full"
-              type="password"
-              placeholder="Password (min 6 characters)"
-              value={password}
-              onChange={e => setPw(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleAuth()}
-            />
+            {resetScreen ? (
+              /* ── Forgot password flow ── */
+              <>
+                <div className="font-semibold text-sm mb-1">Reset your password</div>
+                <p className="text-xs text-dojo-muted mb-2">
+                  Enter your account email and we'll send you a reset link.
+                </p>
+                <input
+                  className="dojo-input w-full"
+                  type="email"
+                  placeholder="Email address"
+                  value={resetEmail}
+                  onChange={e => setResetEmail(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleReset()}
+                  autoFocus
+                />
+                <button
+                  className="dojo-btn-primary"
+                  disabled={resetBusy || !status?.configured}
+                  onClick={handleReset}
+                >
+                  {resetBusy ? '…' : 'Send reset link'}
+                </button>
+                {resetMsg && (
+                  <div className={`text-sm px-3 py-2 rounded-xl ${resetMsg.startsWith('✅') ? 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300' : 'bg-red-50 dark:bg-red-950/30 text-dojo-danger'}`}>
+                    {resetMsg}
+                  </div>
+                )}
+                <button
+                  className="text-xs text-dojo-primary hover:underline"
+                  onClick={() => { setResetScreen(false); setResetMsg(''); }}
+                >
+                  ← Back to sign in
+                </button>
+              </>
+            ) : (
+              /* ── Normal sign-in / sign-up ── */
+              <>
+                <input
+                  className="dojo-input w-full"
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                />
+                <input
+                  className="dojo-input w-full"
+                  type="password"
+                  placeholder="Password (min 6 characters)"
+                  value={password}
+                  onChange={e => setPw(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleAuth()}
+                />
 
-            <button
-              className="dojo-btn-primary"
-              disabled={authBusy || !status?.configured}
-              onClick={handleAuth}
-            >
-              {authBusy ? '…' : authMode === 'signIn' ? 'Sign in' : 'Create account'}
-            </button>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    className="dojo-btn-primary"
+                    disabled={authBusy || !status?.configured}
+                    onClick={handleAuth}
+                  >
+                    {authBusy ? '…' : authMode === 'signIn' ? 'Sign in' : 'Create account'}
+                  </button>
+                  {authMode === 'signIn' && (
+                    <button
+                      className="text-xs text-dojo-primary hover:underline shrink-0"
+                      onClick={() => { setResetScreen(true); setResetEmail(email); setResetMsg(''); }}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
 
-            {authMsg && (
-              <div className={`text-sm px-3 py-2 rounded-xl ${authMsg.includes('failed') || authMsg.includes('Enter') ? 'bg-red-50 dark:bg-red-950/30 text-dojo-danger' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'}`}>
-                {authMsg}
-              </div>
+                {authMsg && (
+                  <div className={`text-sm px-3 py-2 rounded-xl ${authMsg.includes('failed') || authMsg.includes('Enter') ? 'bg-red-50 dark:bg-red-950/30 text-dojo-danger' : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300'}`}>
+                    {authMsg}
+                  </div>
+                )}
+
+                <p className="text-xs text-dojo-muted">
+                  Cloud sync lets you use DutyDojo on multiple computers. Data is stored in your own Supabase project with row-level security — only you can read it.
+                </p>
+              </>
             )}
-
-            <p className="text-xs text-dojo-muted">
-              Cloud sync lets you use DutyDojo on multiple computers. Data is stored in your own Supabase project with row-level security — only you can read it.
-            </p>
           </div>
         )}
       </div>

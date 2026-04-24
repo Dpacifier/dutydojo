@@ -341,6 +341,14 @@ export function registerIpcHandlers(ipc: IpcMain) {
     return { ok: true, pulled: pullResult.pulled };
   });
 
+  ipc.handle('cloud:resetPassword', async (_e, email: string) => {
+    const sb = supabase();
+    if (!sb) return { ok: false, error: 'Supabase not configured' };
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  });
+
   ipc.handle('cloud:signOut', () => {
     saveCloudConfig({ access_token: '', refresh_token: '', user_id: '', user_email: '' });
     setUserId('');

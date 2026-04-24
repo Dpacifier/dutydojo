@@ -180,6 +180,7 @@ const api = {
   cloudSendTestEmail: (payload: { apiKey: string; to: string }) =>
     ipcRenderer.invoke('cloud:sendTestEmail', payload),
   cloudSendWeeklyDigest: () => ipcRenderer.invoke('cloud:sendWeeklyDigest'),
+  cloudResetPassword: (email: string) => ipcRenderer.invoke('cloud:resetPassword', email),
 };
 
 contextBridge.exposeInMainWorld('dojo', api);

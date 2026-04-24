@@ -218,8 +218,12 @@ export function runMigrations(db: Database) {
   if (countRows(db, 'rewards') === 0) {
     const defaults: Array<[string, number, string]> = [
       ['30 min extra screen time', 30,  '📱'],
+      ['Choose dinner tonight',    40,  '🍕'],
       ['Pick family movie',        50,  '🎬'],
+      ['Stay up 30 min later',     60,  '🌙'],
       ['Ice cream trip',           80,  '🍦'],
+      ['Day out — you choose',    100,  '🎡'],
+      ['New book of your choice', 120,  '📖'],
       ['New small toy',           150,  '🧸'],
     ];
     const stmt = db.prepare('INSERT INTO rewards (name, cost, icon) VALUES (?, ?, ?)');
