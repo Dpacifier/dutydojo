@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../store';
 import type { ParentTab } from '../store';
 import { ManageChildren } from './ManageChildren';
@@ -29,6 +29,7 @@ export function ParentPortal() {
   const toggleDarkMode   = useApp((s) => s.toggleDarkMode);
   const requireApproval  = useApp((s) => s.requireApproval);
   const pendingCount     = useApp((s) => s.pendingCount);
+  const [showHelp, setShowHelp] = useState(false);
 
   if (view.name !== 'parent-portal') return null;
   const tab = view.tab;
@@ -62,6 +63,16 @@ export function ParentPortal() {
         e.preventDefault();
         lockParent();
         goKid();
+        return;
+      }
+      if (e.key === 'd' || e.key === 'D') {
+        e.preventDefault();
+        toggleDarkMode();
+        return;
+      }
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowHelp((v) => !v);
       }
     }
     window.addEventListener('keydown', onKeyDown);
@@ -90,6 +101,13 @@ export function ParentPortal() {
           </button>
           <button
             className="dojo-btn-ghost"
+            title="Keyboard shortcuts"
+            onClick={() => setShowHelp((v) => !v)}
+          >
+            ⌨️
+          </button>
+          <button
+            className="dojo-btn-ghost"
             onClick={() => {
               lockParent();
               goKid();
@@ -115,6 +133,14 @@ export function ParentPortal() {
             >
               <span className="mr-2">{t.icon}</span>
               {t.label}
+              {/* Keyboard shortcut hint */}
+              <span className={`ml-1.5 text-[10px] font-mono px-1 py-0.5 rounded border ${
+                tab === t.id
+                  ? 'border-white/40 text-white/70'
+                  : 'border-slate-200 dark:border-slate-600 text-dojo-muted'
+              }`}>
+                {TABS.indexOf(t) + 1}
+              </span>
               {/* Badge for pending approvals */}
               {t.id === 'approvals' && pendingCount > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[10px] font-bold leading-none px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
@@ -125,6 +151,36 @@ export function ParentPortal() {
           ))}
         </div>
       </div>
+
+      {/* ── Keyboard shortcuts help panel ── */}
+      {showHelp && (
+        <div className="mx-6 mt-3 p-4 rounded-2xl border border-dojo-primary/30 bg-violet-50 dark:bg-violet-950/20 text-sm space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="font-semibold text-dojo-primary">⌨️ Keyboard shortcuts</span>
+            <button className="text-dojo-muted hover:text-slate-700 dark:hover:text-slate-300 text-lg leading-none" onClick={() => setShowHelp(false)}>×</button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-1 text-xs text-dojo-muted">
+            {TABS.map((t, i) => (
+              <div key={t.id} className="flex items-center gap-2">
+                <kbd className="px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">{i + 1}</kbd>
+                <span>{t.icon} {t.label}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-2">
+              <kbd className="px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">D</kbd>
+              <span>Toggle dark mode</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">L</kbd>
+              <span>Lock & exit</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-600 font-mono bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300">?</kbd>
+              <span>Toggle this panel</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="p-6">
         {tab === 'children'     && <ManageChildren />}
