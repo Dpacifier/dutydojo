@@ -34,9 +34,7 @@ export function WebLogin({ onSuccess }: Props) {
     const sb = getClient();
 
     if (mode === 'reset') {
-      const { error: err } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin,
-      });
+      const { error: err } = await sb.auth.resetPasswordForEmail(email);
       setLoading(false);
       if (err) {
         setError(err.message);
