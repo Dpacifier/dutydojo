@@ -3,9 +3,9 @@ import type { Database } from 'sql.js';
 function countRows(db: Database, table: string): number {
   const stmt = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`);
   stmt.step();
-  const row = stmt.getAsObject() as { c: number };
+  const row = stmt.getAsObject() as { c: unknown };
   stmt.free();
-  return row.c;
+  return Number(row.c); // sql.js may return numeric columns as strings in some builds
 }
 
 function columnExists(db: Database, table: string, column: string): boolean {
