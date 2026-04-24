@@ -30,15 +30,9 @@ function WebAppRoot() {
     import('./webApi').then(({ getClient, initWebApi }) => {
       const sb = getClient();
 
-      // Restore session on page refresh
-      sb.auth.getSession().then(({ data }) => {
-        if (data.session) {
-          initWebApi(data.session.user.id);
-          setReady(true);
-        }
-      });
-
-      // React to sign-in / sign-out
+      // onAuthStateChange fires with INITIAL_SESSION on page load (restoring an existing
+      // session) AND on every subsequent sign-in/sign-out — so we only need this one listener.
+      // A separate getSession() call would cause a double initWebApi → seeding race → duplicates.
       sb.auth.onAuthStateChange((_event, session) => {
         if (session) {
           initWebApi(session.user.id);

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { getClient, initWebApi } from '../webApi';
+import { getClient } from '../webApi';
 
-type Mode = 'login' | 'signup';
+type Mode = 'login' | 'signup' | 'reset';
 
 interface Props {
   onSuccess: () => void;
@@ -14,7 +14,8 @@ export function WebLogin({ onSuccess }: Props) {
   const [confirm, setConfirm]   = useState('');
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
-  const [done, setDone]         = useState(false); // signup confirmation sent
+  const [done, setDone]         = useState(false);   // signup confirmation sent
+  const [resetSent, setResetSent] = useState(false); // password-reset email sent
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,13 +25,26 @@ export function WebLogin({ onSuccess }: Props) {
       setError('Passwords do not match.');
       return;
     }
-    if (password.length < 6) {
+    if (mode !== 'reset' && password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
     }
 
     setLoading(true);
     const sb = getClient();
+
+    if (mode === 'reset') {
+      const { error: err } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      setLoading(false);
+      if (err) {
+        setError(err.message);
+      } else {
+        setResetSent(true);
+      }
+      return;
+    }
 
     if (mode === 'login') {
       const { data, error: err } = await sb.auth.signInWithPassword({ email, password });
@@ -39,7 +53,7 @@ export function WebLogin({ onSuccess }: Props) {
         setLoading(false);
         return;
       }
-      initWebApi(data.session.user.id);
+      // initWebApi is called by onAuthStateChange in main.tsx — do not call here
       onSuccess();
     } else {
       const { data, error: err } = await sb.auth.signUp({ email, password });
@@ -48,9 +62,8 @@ export function WebLogin({ onSuccess }: Props) {
         setLoading(false);
         return;
       }
-      // If email confirmation is disabled, session is available immediately
       if (data.session) {
-        initWebApi(data.session.user.id);
+        // initWebApi is called by onAuthStateChange in main.tsx — do not call here
         onSuccess();
       } else {
         setDone(true);
@@ -59,6 +72,7 @@ export function WebLogin({ onSuccess }: Props) {
     }
   }
 
+  // ── Signup confirmation screen ────────────────────────────────────────────
   if (done) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 p-4">
@@ -80,6 +94,87 @@ export function WebLogin({ onSuccess }: Props) {
     );
   }
 
+  // ── Password-reset confirmation screen ────────────────────────────────────
+  if (resetSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-8 w-full max-w-sm text-center">
+          <div className="text-5xl mb-4">📧</div>
+          <h2 className="font-display text-xl font-bold mb-2">Reset link sent</h2>
+          <p className="text-dojo-muted text-sm">
+            Check your inbox at <strong>{email}</strong> for a password-reset link.
+            It may take a minute to arrive.
+          </p>
+          <button
+            className="mt-6 text-dojo-primary text-sm font-semibold hover:underline"
+            onClick={() => { setResetSent(false); setMode('login'); }}
+          >
+            Back to sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Forgot password screen ────────────────────────────────────────────────
+  if (mode === 'reset') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-8 w-full max-w-sm">
+          <div className="text-center mb-6">
+            <div className="text-5xl mb-2">🔑</div>
+            <h1 className="font-display text-xl font-bold text-dojo-ink dark:text-white">Reset password</h1>
+            <p className="text-dojo-muted text-sm mt-1">We'll email you a reset link</p>
+          </div>
+
+          <form onSubmit={submit} className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-dojo-muted mb-1">Email</label>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                className="dojo-input w-full"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            {error && (
+              <div className="text-sm text-dojo-danger bg-red-50 dark:bg-red-950/30 rounded-xl px-3 py-2">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="dojo-btn-primary w-full mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? '…' : 'Send reset link'}
+            </button>
+          </form>
+
+          <p className="text-center text-xs text-dojo-muted mt-4">
+            <button
+              type="button"
+              className="text-dojo-primary font-semibold hover:underline"
+              onClick={() => { setMode('login'); setError(''); }}
+            >
+              ← Back to sign in
+            </button>
+          </p>
+
+          <p className="text-center text-xs text-dojo-muted mt-6">
+            © {new Date().getFullYear()} Switch IT Global Limited · Co. No. 11001626
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Sign-in / Create account screen ──────────────────────────────────────
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800 p-4">
       <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl p-8 w-full max-w-sm">
@@ -164,16 +259,27 @@ export function WebLogin({ onSuccess }: Props) {
         </form>
 
         {mode === 'login' && (
-          <p className="text-center text-xs text-dojo-muted mt-4">
-            No account yet?{' '}
-            <button
-              type="button"
-              className="text-dojo-primary font-semibold hover:underline"
-              onClick={() => { setMode('signup'); setError(''); }}
-            >
-              Create one free
-            </button>
-          </p>
+          <div className="mt-4 space-y-2 text-center">
+            <p className="text-xs text-dojo-muted">
+              <button
+                type="button"
+                className="text-dojo-primary font-semibold hover:underline"
+                onClick={() => { setMode('reset'); setError(''); }}
+              >
+                Forgot password?
+              </button>
+            </p>
+            <p className="text-xs text-dojo-muted">
+              No account yet?{' '}
+              <button
+                type="button"
+                className="text-dojo-primary font-semibold hover:underline"
+                onClick={() => { setMode('signup'); setError(''); }}
+              >
+                Create one free
+              </button>
+            </p>
+          </div>
         )}
 
         <p className="text-center text-xs text-dojo-muted mt-6">

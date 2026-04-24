@@ -29,6 +29,10 @@ function uid(): string  { return _userId; }
 function ts(): string   { return new Date().toISOString(); }
 function nextId(): number { return Date.now() * 1000 + Math.floor(Math.random() * 999); }
 
+/** Module-level guard so seedDefaults only runs once per userId even if initWebApi
+ *  is called multiple times concurrently (e.g. from onAuthStateChange + getSession). */
+const _seeded = new Set<string>();
+
 /** Call this once a Supabase session is established. Installs webApi into window.dojo. */
 export function initWebApi(userId: string): void {
   _userId = userId;
@@ -40,6 +44,8 @@ export function initWebApi(userId: string): void {
 
 /** Seeds behaviours, consequences and rewards for a new user if their tables are empty. */
 async function seedDefaults(userId: string): Promise<void> {
+  if (_seeded.has(userId)) return;
+  _seeded.add(userId);
   const client = sb();
   const now = new Date().toISOString();
   const id = () => Date.now() * 1000 + Math.floor(Math.random() * 999);
