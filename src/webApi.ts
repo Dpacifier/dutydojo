@@ -1050,10 +1050,9 @@ export const webApi: DojoApi = {
       });
       clearTimeout(timer);
       const body = await res.json().catch(() => ({}));
-      return res.ok ? { ok: true } : { ok: false, error: (body as { error?: string }).error ?? `Error ${res.status}` };
+      return res.ok ? { ok: true } : { ok: false, error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
     } catch (e) {
-      const msg = e instanceof Error && e.name === 'AbortError' ? 'Request timed out' : 'Network error';
-      return { ok: false, error: msg };
+      return { ok: false, error: e instanceof Error ? e.message : 'Network error' };
     }
   },
   cloudSendWeeklyDigest: async () => {

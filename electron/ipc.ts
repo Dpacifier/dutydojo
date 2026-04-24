@@ -392,6 +392,5 @@ export function registerIpcHandlers(ipc: IpcMain) {
     }
     // Email alert (fire & forget)
     sendApprovalAlert(result.child_name, result.behaviour_name, result.behaviour_points).catch(console.error);
-    return result;
-  });
+    return result;  });
 }

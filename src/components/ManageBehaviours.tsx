@@ -263,6 +263,25 @@ function EmojiPicker({
   );
 }
 
+// ─── Category grouping helper ─────────────────────────────────────────────────
+
+function groupByCategory(items: Behaviour[]): Array<{ category: string; items: Behaviour[] }> {
+  const map = new Map<string, Behaviour[]>();
+  for (const b of items) {
+    const key = b.category || '';
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(b);
+  }
+  const named: Array<{ category: string; items: Behaviour[] }> = [];
+  for (const [cat, list] of map) {
+    if (cat) named.push({ category: cat, items: list });
+  }
+  named.sort((a, b) => a.category.localeCompare(b.category));
+  const uncategorised = map.get('');
+  if (uncategorised?.length) named.push({ category: '', items: uncategorised });
+  return named;
+}
+
 // ─── Template packs ───────────────────────────────────────────────────────────
 
 const TEMPLATE_PACKS: Array<{
@@ -311,6 +330,20 @@ const TEMPLATE_PACKS: Array<{
       { name: 'Said please and thank you',kind:'positive', points: 5,  icon: '🙏', category: 'Social',  dailyLimit: 0 },
       { name: 'Rude or disrespectful',   kind: 'negative', points: -10,icon: '😤', category: 'Social',  dailyLimit: 0 },
       { name: 'Hit / physically hurt someone',kind:'negative',points:-15,icon:'✊',category:'Social',  dailyLimit: 0 },
+    ],
+  },
+  {
+    id: 'screen-time',
+    name: 'Screen Time & Devices',
+    icon: '📵',
+    description: 'Healthy tech habits and device boundaries',
+    behaviours: [
+      { name: 'Put device away when asked',  kind: 'positive', points: 8,  icon: '📵', category: 'Screen Time', dailyLimit: 0 },
+      { name: 'No screen before homework',   kind: 'positive', points: 10, icon: '✅', category: 'Screen Time', dailyLimit: 1 },
+      { name: 'Screen-free family dinner',   kind: 'positive', points: 5,  icon: '🍽️', category: 'Screen Time', dailyLimit: 1 },
+      { name: 'Used device without asking',  kind: 'negative', points: -10,icon: '📱', category: 'Screen Time', dailyLimit: 0 },
+      { name: 'Stayed up late on device',    kind: 'negative', points: -10,icon: '🌙', category: 'Screen Time', dailyLimit: 0 },
+      { name: 'Went over screen time limit', kind: 'negative', points: -5, icon: '⏱️', category: 'Screen Time', dailyLimit: 0 },
     ],
   },
 ];
@@ -427,6 +460,9 @@ export function ManageBehaviours() {
   const positives = allBehaviours.filter((b) => b.kind === 'positive');
   const negatives = allBehaviours.filter((b) => b.kind === 'negative');
 
+  // Unique categories for autocomplete + filter chips
+  const allCategories = [...new Set(allBehaviours.map((b) => b.category).filter(Boolean))].sort();
+
   return (
     <div className="space-y-6">
 
@@ -471,9 +507,13 @@ export function ManageBehaviours() {
             <input
               className="dojo-input w-full"
               placeholder='e.g. "School", "Chores"'
+              list="category-suggestions"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             />
+            <datalist id="category-suggestions">
+              {allCategories.map((cat) => <option key={cat} value={cat} />)}
+            </datalist>
           </div>
           {kind === 'positive' && (
             <div className="w-48">
@@ -541,6 +581,7 @@ export function ManageBehaviours() {
           title="Positive behaviours"
           activeItems={positives.filter((b) => b.active === 1)}
           pausedItems={positives.filter((b) => b.active === 0)}
+          categories={allCategories}
           onToggle={toggleActive}
           onRemove={(id, name) => setDeleteTarget({ id, name })}
           onUpdate={updateRow}
@@ -549,6 +590,7 @@ export function ManageBehaviours() {
           title="Needs Attention"
           activeItems={negatives.filter((b) => b.active === 1)}
           pausedItems={negatives.filter((b) => b.active === 0)}
+          categories={allCategories}
           onToggle={toggleActive}
           onRemove={(id, name) => setDeleteTarget({ id, name })}
           onUpdate={updateRow}
@@ -642,15 +684,29 @@ export function ManageBehaviours() {
 // ─── BehaviourList ────────────────────────────────────────────────────────────
 
 function BehaviourList({
-  title, activeItems, pausedItems, onToggle, onRemove, onUpdate,
+  title, activeItems, pausedItems, categories, onToggle, onRemove, onUpdate,
 }: {
   title: string;
   activeItems: Behaviour[];
   pausedItems: Behaviour[];
+  categories: string[];
   onToggle: (b: Behaviour) => void;
   onRemove: (id: number, name: string) => void;
   onUpdate: (id: number, patch: { name?: string; points?: number; icon?: string; category?: string; daily_limit?: number }) => void;
 }) {
+  const [filterCat, setFilterCat] = useState('');
+
+  const filteredActive = filterCat ? activeItems.filter((b) => b.category === filterCat) : activeItems;
+  const filteredPaused = filterCat ? pausedItems.filter((b) => b.category === filterCat) : pausedItems;
+
+  // Group active items by category
+  const groups = groupByCategory(filteredActive);
+
+  // Categories that actually appear in this list (positive or negative)
+  const relevantCats = categories.filter((cat) =>
+    [...activeItems, ...pausedItems].some((b) => b.category === cat),
+  );
+
   return (
     <div className="dojo-card">
       <div className="font-display font-semibold text-lg mb-3">
@@ -661,31 +717,75 @@ function BehaviourList({
         </span>
       </div>
 
+      {/* Category filter chips */}
+      {relevantCats.length > 1 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <button
+            onClick={() => setFilterCat('')}
+            className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition ${
+              !filterCat
+                ? 'bg-dojo-primary text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-dojo-muted hover:bg-slate-200 dark:hover:bg-slate-600'
+            }`}
+          >
+            All
+          </button>
+          {relevantCats.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setFilterCat((f) => (f === cat ? '' : cat))}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition ${
+                filterCat === cat
+                  ? 'bg-dojo-primary text-white'
+                  : 'bg-slate-100 dark:bg-slate-700 text-dojo-muted hover:bg-slate-200 dark:hover:bg-slate-600'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
       {activeItems.length === 0 && pausedItems.length === 0 ? (
         <div className="text-dojo-muted text-sm">None yet.</div>
       ) : (
         <>
-          {activeItems.length === 0 ? (
+          {filteredActive.length === 0 && filteredPaused.length === 0 ? (
+            <div className="text-dojo-muted text-sm py-1">No behaviours in this category.</div>
+          ) : filteredActive.length === 0 ? (
             <div className="text-dojo-muted text-sm py-1">All paused.</div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-700">
-              {activeItems.map((b) => (
-                <BehaviourRow key={b.id} b={b} onToggle={onToggle} onRemove={onRemove} onUpdate={onUpdate} />
+            <div>
+              {groups.map(({ category, items }) => (
+                <div key={category || '__none__'}>
+                  {/* Category group header — only when multiple categories exist */}
+                  {relevantCats.length > 1 && !filterCat && category && (
+                    <div className="flex items-center gap-2 mt-3 mb-1 first:mt-0">
+                      <span className="text-xs font-bold text-dojo-muted uppercase tracking-wide">{category}</span>
+                      <div className="h-px flex-1 bg-slate-100 dark:bg-slate-700" />
+                    </div>
+                  )}
+                  <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                    {items.map((b) => (
+                      <BehaviourRow key={b.id} b={b} onToggle={onToggle} onRemove={onRemove} onUpdate={onUpdate} />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
 
-          {pausedItems.length > 0 && (
+          {filteredPaused.length > 0 && (
             <div className="mt-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
                 <span className="text-xs font-bold text-dojo-muted uppercase tracking-wide">
-                  Paused ({pausedItems.length})
+                  Paused ({filteredPaused.length})
                 </span>
                 <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               </div>
               <div className="divide-y divide-slate-100 dark:divide-slate-700 opacity-60">
-                {pausedItems.map((b) => (
+                {filteredPaused.map((b) => (
                   <BehaviourRow key={b.id} b={b} paused onToggle={onToggle} onRemove={onRemove} onUpdate={onUpdate} />
                 ))}
               </div>
@@ -696,6 +796,7 @@ function BehaviourList({
     </div>
   );
 }
+
 
 // ─── BehaviourRow ─────────────────────────────────────────────────────────────
 
@@ -711,7 +812,6 @@ function BehaviourRow({
   return (
     <div className="py-2.5">
       <div className="flex items-center gap-2">
-        {/* Icon — emoji picker (read-only when paused) */}
         <div className="w-12 shrink-0">
           {paused ? (
             <span className="flex items-center justify-center text-2xl w-12 h-10">{b.icon}</span>
@@ -723,16 +823,12 @@ function BehaviourRow({
             />
           )}
         </div>
-
-        {/* Name */}
         <input
           className="flex-1 min-w-0 bg-transparent font-semibold border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg px-2 py-1 truncate"
           defaultValue={b.name}
           disabled={paused}
           onBlur={(e) => e.target.value !== b.name && onUpdate(b.id, { name: e.target.value })}
         />
-
-        {/* Points */}
         <input
           type="number"
           className="w-20 bg-transparent tabular-nums text-right border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg px-2 py-1 shrink-0"
@@ -743,7 +839,6 @@ function BehaviourRow({
             onUpdate(b.id, { points: Number(e.target.value) })
           }
         />
-
         {paused ? (
           <button
             className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-xl transition"
@@ -760,7 +855,6 @@ function BehaviourRow({
             ⏸ Pause
           </button>
         )}
-
         <button
           className="shrink-0 px-2.5 py-1.5 text-xs text-dojo-danger hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition"
           title="Permanently remove"
@@ -769,14 +863,13 @@ function BehaviourRow({
           ✕
         </button>
       </div>
-
-      {/* Category + daily limit sub-row */}
       {!paused && (
         <div className="flex items-center gap-3 mt-1 ml-14">
           <input
             className="text-xs bg-transparent text-dojo-muted border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg px-2 py-0.5 w-32"
             defaultValue={b.category ?? ''}
-            placeholder="Category…"
+            placeholder="Category..."
+            list="category-suggestions"
             onBlur={(e) => e.target.value !== (b.category ?? '') && onUpdate(b.id, { category: e.target.value })}
           />
           {b.kind === 'positive' && (
@@ -792,7 +885,7 @@ function BehaviourRow({
                   onUpdate(b.id, { daily_limit: Number(e.target.value) })
                 }
               />
-              <span className="text-dojo-muted/60">(0 = ∞)</span>
+              <span className="text-dojo-muted/60">(0 = inf)</span>
             </div>
           )}
         </div>

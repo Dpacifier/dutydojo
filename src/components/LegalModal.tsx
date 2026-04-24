@@ -396,9 +396,9 @@ function DataContent() {
   );
 }
 
-/* ────────────────────────────────────────────────────────── */
-/*  Shared section component                                  */
-/* ────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────── */
+/*  Shared section component                                    */
+/* ──────────────────────────────────────────────────────────── */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
