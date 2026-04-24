@@ -26,16 +26,8 @@ type AppState = 'loading' | 'login' | 'ready' | 'recovery';
 
 /** Browser/PWA root — manages Supabase auth state before mounting App. */
 function WebAppRoot() {
-  // Check the URL hash SYNCHRONOUSLY before any async work.
-  // When a user clicks a password-reset link the URL contains #type=recovery.
-  // Supabase processes this hash immediately on client init, so by the time our
-  // dynamic import resolves the onAuthStateChange event has already fired.
-  // Detecting the hash here lets us render the correct screen without relying
-  // on catching that first event.
-  const isRecoveryLink = window.location.hash.includes('type=recovery');
-
-  const [state, setState]   = useState<AppState>(isRecoveryLink ? 'recovery' : 'loading');
-  const recoveryMode        = useRef(isRecoveryLink);
+  const [state, setState] = useState<AppState>('loading');
+  const recoveryMode      = useRef(false);
 
   useEffect(() => {
     import('./webApi').then(({ getClient, initWebApi }) => {
@@ -43,20 +35,33 @@ function WebAppRoot() {
 
       sb.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
-          // Supabase detected the recovery token — stay on the reset screen.
+          // User arrived via a password-reset link (PKCE or implicit flow).
           recoveryMode.current = true;
           setState('recovery');
-        } else if (session && !recoveryMode.current) {
-          // Normal sign-in or page refresh with existing session.
-          initWebApi(session.user.id);
+
+        } else if (event === 'SIGNED_IN' && !recoveryMode.current) {
+          // Normal sign-in.
+          initWebApi(session!.user.id);
           setState('ready');
-        } else if (!session) {
-          // Signed out (including after password reset completes).
+
+        } else if (event === 'INITIAL_SESSION') {
+          if (session && !recoveryMode.current) {
+            // Existing session on page load/refresh.
+            initWebApi(session.user.id);
+            setState('ready');
+          } else if (!session) {
+            // No session yet. If the URL has ?code= Supabase is still exchanging
+            // a PKCE token — keep showing the loading spinner until PASSWORD_RECOVERY
+            // or SIGNED_IN fires. If there is no code, go straight to login.
+            const hasPkceCode = window.location.search.includes('code=');
+            if (!hasPkceCode) setState('login');
+            // else: stay 'loading' — the next event will resolve the state.
+          }
+
+        } else if (event === 'SIGNED_OUT') {
           recoveryMode.current = false;
           setState('login');
         }
-        // If session exists but recoveryMode is true, the user is authenticated
-        // via the recovery token — keep showing SetNewPassword, don't go to App.
       });
     });
   }, []);
