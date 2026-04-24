@@ -20,7 +20,15 @@ let _sb: SupabaseClient | null = null;
 let _userId = '';
 
 function sb(): SupabaseClient {
-  if (!_sb) _sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (!_sb) _sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      // PKCE puts the auth code in ?code= (a query parameter) instead of the URL
+      // hash fragment (#access_token=...). Query params survive HTTP redirects;
+      // hash fragments do not — so PKCE is required when the domain has any
+      // redirect (e.g. dutydojo.com → www.dutydojo.com) in front of the app.
+      flowType: 'pkce',
+    },
+  });
   return _sb;
 }
 
