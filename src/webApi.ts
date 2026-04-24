@@ -1123,6 +1123,118 @@ export const webApi: DojoApi = {
 };
 
 /**
+ * Fetches (or returns a cached) daily personalised coach message for a child.
+ * Calls the `dojo-coach` Edge Function, which invokes Claude.
+ * Caches the result in localStorage keyed by childId + date, so Claude is
+ * only called once per child per calendar day.
+ *
+ * Returns null silently if there is no active session (e.g. Electron mode
+ * where Supabase URL is empty) or if the Edge Function call fails.
+ */
+export async function getCoachMessage(params: {
+  childId: number;
+  childName: string;
+  points: number;
+  goal: number;
+  streak: number;
+  behaviourSummary?: string;
+}): Promise<string | null> {
+  const today    = new Date().toISOString().slice(0, 10);
+  const cacheKey = `dojo_coach_${params.childId}_${today}`;
+
+  // Return cached message if available (avoids repeat API calls within the day)
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return cached;
+  } catch { /* localStorage not available */ }
+
+  // Need a live Supabase session to call the Edge Function
+  const { data: { session } } = await sb().auth.getSession();
+  const token = session?.access_token;
+  if (!token) return null;
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12_000);
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/dojo-coach`, {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(params),
+      signal:  controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) return null;
+
+    const body = await res.json() as { message?: string };
+    const message = body.message ?? null;
+
+    if (message) {
+      try { localStorage.setItem(cacheKey, message); } catch { /* ignore */ }
+    }
+    return message;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Permanently deletes the current user's account.
+ * Calls the `delete-account` Edge Function which removes all dd_* data
+ * and then deletes the Supabase auth user, then signs out locally.
+ * Returns { ok: true } on success or { ok: false, error: string } on failure.
+ */
+export async function deleteWebAccount(password: string): Promise<{ ok: boolean; error?: string }> {
+  // Re-verify password before irreversible deletion
+  const { data: { session } } = await sb().auth.getSession();
+  const email = session?.user?.email;
+  if (!email) return { ok: false, error: 'No active session' };
+
+  const { error: verifyErr } = await sb().auth.signInWithPassword({ email, password });
+  if (verifyErr) return { ok: false, error: 'Password is incorrect' };
+
+  // Retrieve a fresh token after re-auth
+  const { data: { session: freshSession } } = await sb().auth.getSession();
+  const token = freshSession?.access_token;
+  if (!token) return { ok: false, error: 'Could not refresh session' };
+
+  // Call the Edge Function
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { ok: false, error: (body as { error?: string }).error ?? `HTTP ${res.status}` };
+  }
+
+  await sb().auth.signOut();
+  return { ok: true };
+}
+      body:    JSON.stringify(params),
+      signal:  controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) return null;
+
+    const body = await res.json() as { message?: string };
+    const message = body.message ?? null;
+
+    if (message) {
+      try { localStorage.setItem(cacheKey, message); } catch (_e) { /* ignore */ }
+    }
+    return message;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Permanently deletes the current user's account.
  * Calls the `delete-account` Edge Function which removes all dd_* data
  * and then deletes the Supabase auth user, then signs out locally.

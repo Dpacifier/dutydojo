@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../store';
 import type { AssignedConsequence, Behaviour, Child, Reward } from '../types';
+import { DojoCoachCard } from './DojoCoachCard';
 
 const MIN_REDEEM = 100;
 
@@ -483,6 +484,18 @@ export function KidView() {
             </div>
           </div>
         </div>
+
+        {/* ── Dojo Coach Card (AI daily message) ── */}
+        {activeChild && activeChildId && (
+          <DojoCoachCard
+            childId={activeChildId}
+            childName={activeChild.name}
+            points={balance}
+            goal={activeChild.goal_points}
+            streak={streak}
+            themeColor={activeChild.theme_color ?? '#6366f1'}
+          />
+        )}
 
         {/* ── Active assigned consequences card ── */}
         {assignedConsequences.length > 0 && (
