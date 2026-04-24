@@ -176,6 +176,9 @@ export function KidView() {
   const [undoHistoryId, setUndoHistoryId] = useState<number | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Category filter
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
   const activeChild: Child | undefined = useMemo(
     () => children.find((c) => c.id === activeChildId),
     [children, activeChildId]
@@ -189,6 +192,7 @@ export function KidView() {
     // Clear any pending undo when switching children
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     setUndoHistoryId(null);
+    setActiveCategory(null);
 
     // Balance — always needed, load first
     window.dojo.getChildPoints(activeChildId)
@@ -334,6 +338,13 @@ export function KidView() {
 
   const positives = behaviours.filter((b) => b.kind === 'positive' && !excludedBehaviourIds.includes(b.id));
   const negatives = behaviours.filter((b) => b.kind === 'negative' && !excludedBehaviourIds.includes(b.id));
+
+  // Derive unique categories across all visible behaviours (for filter chips)
+  const allCategories = Array.from(
+    new Set([...positives, ...negatives].map((b) => b.category).filter(Boolean))
+  ).sort();
+  const filteredPositives = activeCategory ? positives.filter((b) => b.category === activeCategory) : positives;
+  const filteredNegatives = activeCategory ? negatives.filter((b) => b.category === activeCategory) : negatives;
 
   return (
     <div className="min-h-screen">
@@ -510,14 +521,42 @@ export function KidView() {
         )}
 
         {/* ── Behaviours grid ── */}
-        <div className="grid md:grid-cols-2 gap-6 mt-6">
+        {/* Category filter chips — shown only when ≥1 category exists */}
+        {allCategories.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-6 px-1">
+            <button
+              onClick={() => setActiveCategory(null)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${
+                activeCategory === null
+                  ? 'bg-dojo-primary text-white border-dojo-primary'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-dojo-muted hover:border-dojo-primary/50'
+              }`}
+            >
+              All
+            </button>
+            {allCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat === activeCategory ? null : cat)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold border transition ${
+                  activeCategory === cat
+                    ? 'bg-dojo-primary text-white border-dojo-primary'
+                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-dojo-muted hover:border-dojo-primary/50'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="grid md:grid-cols-2 gap-6 mt-4">
           <Section title="Ways to earn ⭐" empty="No positive behaviours yet — ask a parent to add some.">
-            {positives.map((b) => (
+            {filteredPositives.map((b) => (
               <TapTile key={b.id} b={b} onTap={() => tap(b)} />
             ))}
           </Section>
           <Section title="Needs Attention ⚠️" empty="Nothing needs attention yet.">
-            {negatives.map((b) => (
+            {filteredNegatives.map((b) => (
               <TapTile key={b.id} b={b} onTap={() => tap(b)} />
             ))}
           </Section>
