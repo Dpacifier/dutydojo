@@ -201,7 +201,7 @@ export function ManageApprovals() {
     return (
       <div className="max-w-2xl space-y-3">
         <div className="dojo-card text-center py-12">
-          <div className="text-5xl mb-3">\u2705</div>
+          <div className="text-5xl mb-3">✅</div>
           <div className="font-display text-xl font-bold mb-1">All clear!</div>
           <div className="text-dojo-muted text-sm">No behaviour submissions waiting for review.</div>
         </div>
@@ -211,7 +211,7 @@ export function ManageApprovals() {
             onClick={handlePrint}
             disabled={printBusy}
           >
-            \U0001f5a8\ufe0f {printBusy ? 'Preparing\u2026' : 'Weekly Report'}
+            🖨️ {printBusy ? 'Preparing…' : 'Weekly Report'}
           </button>
         </div>
       </div>
@@ -227,13 +227,13 @@ export function ManageApprovals() {
           onClick={handlePrint}
           disabled={printBusy}
         >
-          \U0001f5a8\ufe0f {printBusy ? 'Preparing\u2026' : 'Weekly Report'}
+          🖨️ {printBusy ? 'Preparing…' : 'Weekly Report'}
         </button>
       </div>
 
       {/* Info banner */}
       <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-2xl px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-        <span className="text-xl shrink-0">\u270b</span>
+        <span className="text-xl shrink-0">✋</span>
         <div>
           <span className="font-semibold">{items.length} submission{items.length === 1 ? '' : 's'} waiting.</span>
           {' '}Approve to add points, or reject to dismiss without applying.
@@ -244,13 +244,13 @@ export function ManageApprovals() {
               className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-xl transition"
               onClick={approveAll}
             >
-              \u2713 Approve all
+              ✓ Approve all
             </button>
             <button
               className="text-xs font-bold border border-red-300 dark:border-red-700 text-dojo-danger hover:bg-red-50 dark:hover:bg-red-950/30 px-3 py-1.5 rounded-xl transition"
               onClick={rejectAll}
             >
-              \u2715 Reject all
+              ✕ Reject all
             </button>
           </div>
         )}
@@ -279,7 +279,7 @@ export function ManageApprovals() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold">{item.child_name}</span>
-                  <span className="text-dojo-muted text-xs">\u00b7</span>
+                  <span className="text-dojo-muted text-xs">·</span>
                   <span className="text-xs text-dojo-muted">{timeAgo(item.created_at)}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1.5">
@@ -298,9 +298,9 @@ export function ManageApprovals() {
               {/* Actions or result */}
               <div className="shrink-0 flex flex-col items-end gap-2">
                 {approved ? (
-                  <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">\u2705 Approved</div>
+                  <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">✅ Approved</div>
                 ) : rejected ? (
-                  <div className="text-sm font-bold text-dojo-muted">\u2715 Rejected</div>
+                  <div className="text-sm font-bold text-dojo-muted">✕ Rejected</div>
                 ) : (
                   <>
                     <button
