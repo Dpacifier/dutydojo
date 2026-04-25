@@ -123,6 +123,7 @@ export function ManageChildren() {
             className="dojo-input md:col-span-1"
             placeholder="Name"
             value={name}
+            maxLength={60}
             onChange={(e) => setName(e.target.value)}
           />
           <select

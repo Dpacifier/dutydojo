@@ -474,6 +474,7 @@ export function ManageBehaviours() {
             className="dojo-input flex-1 min-w-48"
             placeholder='e.g. "Finished homework"'
             value={name}
+            maxLength={80}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && add()}
           />
@@ -827,6 +828,7 @@ function BehaviourRow({
           className="flex-1 min-w-0 bg-transparent font-semibold border border-transparent hover:border-slate-200 dark:hover:border-slate-600 rounded-lg px-2 py-1 truncate"
           defaultValue={b.name}
           disabled={paused}
+          maxLength={80}
           onBlur={(e) => e.target.value !== b.name && onUpdate(b.id, { name: e.target.value })}
         />
         <input
