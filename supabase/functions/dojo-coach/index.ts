@@ -4,19 +4,14 @@ const OPENAI_API_KEY        = Deno.env.get('OPENAI_API_KEY') ?? '';
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-// Allowed origins — extend this list if you add new domains
-const ALLOWED_ORIGINS = new Set([
-  'https://www.dutydojo.com',
-  'https://dutydojo.com',
-]);
-
 function corsHeaders(req: Request) {
   const origin = req.headers.get('Origin') ?? '';
-  // Accept any dutydojo.vercel.app preview URL, or explicit allowed origins
+  // Accept any *.dutydojo.com subdomain or dutydojo Vercel preview URLs
   const allowed =
-    ALLOWED_ORIGINS.has(origin) || /^https:\/\/dutydojo[^.]*\.vercel\.app$/.test(origin)
+    /^https:\/\/([a-z0-9-]+\.)?dutydojo\.com$/.test(origin) ||
+    /^https:\/\/dutydojo[^.]*\.vercel\.app$/.test(origin)
       ? origin
-      : 'https://www.dutydojo.com';
+      : 'https://app.dutydojo.com';
   return {
     'Access-Control-Allow-Origin':  allowed,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, content-type',
