@@ -47,20 +47,60 @@ function playSound(kind: 'positive' | 'negative') {
 
 // ── PIN entry screen ───────────────────────────────────────────────────────────
 
+const PIN_ATTEMPTS_KEY = 'dojo_pin_attempts';
+const PIN_LOCKOUT_KEY  = 'dojo_pin_lockout';
+const MAX_ATTEMPTS     = 5;
+const LOCKOUT_MS       = 10 * 60 * 1000; // 10 minutes
+
+function getPinAttempts(): number {
+  try { return parseInt(localStorage.getItem(PIN_ATTEMPTS_KEY) ?? '0', 10); } catch { return 0; }
+}
+function setPinAttempts(n: number) {
+  try { localStorage.setItem(PIN_ATTEMPTS_KEY, String(n)); } catch { /* ignore */ }
+}
+function getLockoutUntil(): number {
+  try { return parseInt(localStorage.getItem(PIN_LOCKOUT_KEY) ?? '0', 10); } catch { return 0; }
+}
+function setLockoutUntil(ts: number) {
+  try { localStorage.setItem(PIN_LOCKOUT_KEY, String(ts)); } catch { /* ignore */ }
+}
+function clearPinLockout() {
+  try { localStorage.removeItem(PIN_ATTEMPTS_KEY); localStorage.removeItem(PIN_LOCKOUT_KEY); } catch { /* ignore */ }
+}
+
 function KidPinEntry({ onVerified }: { onVerified: () => void }) {
-  const [digits, setDigits] = useState('');
-  const [error, setError]   = useState(false);
-  const [shake, setShake]   = useState(false);
+  const [digits, setDigits]       = useState('');
+  const [error, setError]         = useState(false);
+  const [shake, setShake]         = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<number>(() => getLockoutUntil());
+
+  // Countdown display
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (lockedUntil <= Date.now()) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [lockedUntil]);
 
   async function handleDigit(d: string) {
+    if (lockedUntil > Date.now()) return; // locked — ignore taps
     if (digits.length >= 4) return;
     const next = digits + d;
     setDigits(next);
     if (next.length === 4) {
       const ok = await window.dojo.verifyKidPin(next);
       if (ok) {
+        clearPinLockout();
         onVerified();
       } else {
+        const attempts = getPinAttempts() + 1;
+        setPinAttempts(attempts);
+        if (attempts >= MAX_ATTEMPTS) {
+          const until = Date.now() + LOCKOUT_MS;
+          setLockoutUntil(until);
+          setLockedUntil(until);
+          setPinAttempts(0);
+        }
         setError(true);
         setShake(true);
         setTimeout(() => { setDigits(''); setError(false); setShake(false); }, 600);
@@ -68,58 +108,72 @@ function KidPinEntry({ onVerified }: { onVerified: () => void }) {
     }
   }
 
+  const secsLeft = Math.ceil((lockedUntil - now) / 1000);
+
+  const isLocked = lockedUntil > now;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-slate-900 dark:to-slate-800">
       <div className="w-full max-w-xs">
         <div className="text-center mb-6">
-          <div className="text-6xl mb-3">🔐</div>
-          <div className="font-display text-2xl font-bold">Enter your PIN</div>
-          <div className="text-dojo-muted text-sm mt-1">Ask a parent if you forgot it</div>
-        </div>
-
-        {/* Dots */}
-        <motion.div
-          className="flex justify-center gap-4 mb-8"
-          animate={shake ? { x: [-8, 8, -8, 8, 0] } : {}}
-          transition={{ duration: 0.3 }}
-        >
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`w-4 h-4 rounded-full border-2 transition-all ${
-                i < digits.length
-                  ? error ? 'bg-red-500 border-red-500' : 'bg-dojo-primary border-dojo-primary'
-                  : 'bg-transparent border-slate-300 dark:border-slate-600'
-              }`}
-            />
-          ))}
-        </motion.div>
-
-        {/* Keypad */}
-        <div className="grid grid-cols-3 gap-3">
-          {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((k) => (
-            <button
-              key={k}
-              disabled={k === ''}
-              onClick={() => {
-                if (k === '⌫') setDigits((d) => d.slice(0, -1));
-                else if (k !== '') handleDigit(k);
-              }}
-              className={`h-16 rounded-2xl text-2xl font-bold transition ${
-                k === ''
-                  ? 'invisible'
-                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-slate-700 active:scale-95 shadow-sm'
-              }`}
-            >
-              {k}
-            </button>
-          ))}
-        </div>
-
-        {error && (
-          <div className="mt-4 text-center text-sm text-red-600 font-semibold">
-            Wrong PIN — try again
+          <div className="text-6xl mb-3">{isLocked ? '🔒' : '🔐'}</div>
+          <div className="font-display text-2xl font-bold">
+            {isLocked ? 'Too many attempts' : 'Enter your PIN'}
           </div>
+          <div className="text-dojo-muted text-sm mt-1">
+            {isLocked
+              ? `Try again in ${Math.floor(secsLeft / 60)}:${String(secsLeft % 60).padStart(2, '0')}`
+              : 'Ask a parent if you forgot it'}
+          </div>
+        </div>
+
+        {!isLocked && (
+          <>
+            {/* Dots */}
+            <motion.div
+              className="flex justify-center gap-4 mb-8"
+              animate={shake ? { x: [-8, 8, -8, 8, 0] } : {}}
+              transition={{ duration: 0.3 }}
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`w-4 h-4 rounded-full border-2 transition-all ${
+                    i < digits.length
+                      ? error ? 'bg-red-500 border-red-500' : 'bg-dojo-primary border-dojo-primary'
+                      : 'bg-transparent border-slate-300 dark:border-slate-600'
+                  }`}
+                />
+              ))}
+            </motion.div>
+
+            {/* Keypad */}
+            <div className="grid grid-cols-3 gap-3">
+              {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((k) => (
+                <button
+                  key={k}
+                  disabled={k === ''}
+                  onClick={() => {
+                    if (k === '⌫') setDigits((d) => d.slice(0, -1));
+                    else if (k !== '') handleDigit(k);
+                  }}
+                  className={`h-16 rounded-2xl text-2xl font-bold transition ${
+                    k === ''
+                      ? 'invisible'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-violet-50 dark:hover:bg-slate-700 active:scale-95 shadow-sm'
+                  }`}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+
+            {error && (
+              <div className="mt-4 text-center text-sm text-red-600 font-semibold">
+                Wrong PIN — {MAX_ATTEMPTS - getPinAttempts()} attempt{MAX_ATTEMPTS - getPinAttempts() === 1 ? '' : 's'} left
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

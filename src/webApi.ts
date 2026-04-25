@@ -1148,8 +1148,11 @@ export async function getCoachMessage(params: {
     if (cached) return cached;
   } catch { /* localStorage not available */ }
 
-  // Use the public anon key — no session required (coach message is non-sensitive)
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  // Require a valid session JWT — keeps the Edge Function locked to real users
+  if (!SUPABASE_URL) return null;
+  const { data: { session } } = await sb().auth.getSession();
+  const token = session?.access_token;
+  if (!token) return null;
 
   try {
     const controller = new AbortController();
@@ -1157,8 +1160,8 @@ export async function getCoachMessage(params: {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/dojo-coach`, {
       method:  'POST',
       headers: {
-        'apikey':       SUPABASE_ANON_KEY,
-        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':  'application/json',
       },
       body:    JSON.stringify(params),
       signal:  controller.signal,

@@ -5,8 +5,8 @@ const SUPABASE_URL          = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Origin':  'https://www.dutydojo.com',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, content-type',
 };
 
 function json(body: unknown, status = 200) {
@@ -16,50 +16,44 @@ function json(body: unknown, status = 200) {
   });
 }
 
+/** Strip control chars and injection-friendly characters, trim, cap length */
+function sanitise(input: string, maxLen: number): string {
+  return input.replace(/[\x00-\x1F\x7F<>{}]/g, '').trim().slice(0, maxLen);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 
   try {
-    // ── Light auth: accept any valid Supabase key (anon or user JWT) ─────────
-    // We verify the apikey header matches the project's anon key, OR we accept
-    // a Bearer JWT and validate it. Either path confirms the caller is a
-    // legitimate DutyDojo client — the coach message itself isn't sensitive.
-    const apikey    = req.headers.get('apikey') ?? '';
+    // ── Auth: require a valid user JWT ────────────────────────────────────────
     const authHeader = req.headers.get('Authorization') ?? '';
+    if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
 
-    let callerVerified = false;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
+    const { data: { user } } = await supabase.auth.getUser(
+      authHeader.replace('Bearer ', ''),
+    );
+    if (!user) return json({ error: 'Unauthorized' }, 401);
 
-    if (authHeader.startsWith('Bearer ') && SUPABASE_SERVICE_ROLE) {
-      // Try to verify as a proper user JWT
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
-      const { data: { user } } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', ''),
-      );
-      if (user) callerVerified = true;
-    }
+    // ── Parse + sanitise body ─────────────────────────────────────────────────
+    const raw = (await req.json()) as {
+      childName?: unknown;
+      points?: unknown;
+      goal?: unknown;
+      streak?: unknown;
+      behaviourSummary?: unknown;
+    };
 
-    // Fallback: accept the Supabase anon key in the apikey header
-    // (the anon key is public-facing and safe to use here)
-    if (!callerVerified && apikey) {
-      callerVerified = true; // anon key confirms this is a Supabase project client
-    }
-
-    if (!callerVerified) return json({ error: 'Unauthorized' }, 401);
-
-    // ── Parse body ────────────────────────────────────────────────────────────
-    const { childName, points, goal, streak, behaviourSummary } =
-      (await req.json()) as {
-        childName: string;
-        points: number;
-        goal: number;
-        streak: number;
-        behaviourSummary?: string;
-      };
+    const childName        = sanitise(String(raw.childName        ?? ''), 50);
+    const behaviourSummary = sanitise(String(raw.behaviourSummary ?? ''), 200);
+    const points           = Math.max(0, Math.min(Number(raw.points ?? 0),  99999));
+    const goal             = Math.max(1, Math.min(Number(raw.goal   ?? 100), 99999));
+    const streak           = Math.max(0, Math.min(Number(raw.streak ?? 0),  9999));
 
     if (!childName) return json({ error: 'childName is required' }, 400);
 
-    // ── Build prompts ─────────────────────────────────────────────────────────
-    const pct = goal > 0 ? Math.round((points / goal) * 100) : 0;
+    // ── Build prompt ──────────────────────────────────────────────────────────
+    const pct = Math.round((points / goal) * 100);
 
     const systemPrompt = `You are Dojo Coach, a warm and encouraging personal coach for children using the DutyDojo family reward app.
 Write a short daily message (2–3 sentences max) for a child. Rules:
