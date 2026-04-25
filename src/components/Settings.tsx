@@ -267,7 +267,7 @@ export function Settings() {
             <input
               type="number"
               className="dojo-input"
-              placeholder="e.g. 50 (0 = unlimited)"
+              placeholder="0 (unlimited)"
               value={defaults.max_points_per_day}
               min={0}
               onChange={(e) =>
@@ -275,8 +275,13 @@ export function Settings() {
               }
             />
             <div className="text-xs text-dojo-muted mt-1">
-              Maximum points a child can earn in a single day across all behaviours. Set to 0 to disable.
+              Maximum positive points a child can earn in a single day. Set to <strong>0</strong> to disable (recommended). If set, use a value of at least 20 to avoid blocking all taps.
             </div>
+            {defaults.max_points_per_day > 0 && defaults.max_points_per_day < 20 && (
+              <div className="mt-2 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-lg px-3 py-2">
+                ⚠️ This cap is very low — children will hit it immediately. Consider setting it to 0 (unlimited) or at least 20.
+              </div>
+            )}
           </div>
 
           {/* Approval mode toggle */}

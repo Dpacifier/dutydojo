@@ -4,15 +4,29 @@ const OPENAI_API_KEY        = Deno.env.get('OPENAI_API_KEY') ?? '';
 const SUPABASE_URL          = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-const CORS = {
-  'Access-Control-Allow-Origin':  'https://www.dutydojo.com',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, content-type',
-};
+// Allowed origins — extend this list if you add new domains
+const ALLOWED_ORIGINS = new Set([
+  'https://www.dutydojo.com',
+  'https://dutydojo.com',
+]);
 
-function json(body: unknown, status = 200) {
+function corsHeaders(req: Request) {
+  const origin = req.headers.get('Origin') ?? '';
+  // Accept any dutydojo.vercel.app preview URL, or explicit allowed origins
+  const allowed =
+    ALLOWED_ORIGINS.has(origin) || /^https:\/\/dutydojo[^.]*\.vercel\.app$/.test(origin)
+      ? origin
+      : 'https://www.dutydojo.com';
+  return {
+    'Access-Control-Allow-Origin':  allowed,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, content-type',
+  };
+}
+
+function json(body: unknown, status = 200, req?: Request) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { ...(req ? corsHeaders(req) : { 'Access-Control-Allow-Origin': 'https://www.dutydojo.com', 'Access-Control-Allow-Headers': 'authorization, x-client-info, content-type' }), 'Content-Type': 'application/json' },
   });
 }
 
@@ -22,18 +36,18 @@ function sanitise(input: string, maxLen: number): string {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders(req) });
 
   try {
     // ── Auth: require a valid user JWT ────────────────────────────────────────
     const authHeader = req.headers.get('Authorization') ?? '';
-    if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401);
+    if (!authHeader.startsWith('Bearer ')) return json({ error: 'Unauthorized' }, 401, req);
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE);
     const { data: { user } } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', ''),
     );
-    if (!user) return json({ error: 'Unauthorized' }, 401);
+    if (!user) return json({ error: 'Unauthorized' }, 401, req);
 
     // ── Parse + sanitise body ─────────────────────────────────────────────────
     const raw = (await req.json()) as {
@@ -50,7 +64,7 @@ Deno.serve(async (req: Request) => {
     const goal             = Math.max(1, Math.min(Number(raw.goal   ?? 100), 99999));
     const streak           = Math.max(0, Math.min(Number(raw.streak ?? 0),  9999));
 
-    if (!childName) return json({ error: 'childName is required' }, 400);
+    if (!childName) return json({ error: 'childName is required' }, 400, req);
 
     // ── Build prompt ──────────────────────────────────────────────────────────
     const pct = Math.round((points / goal) * 100);
@@ -92,7 +106,7 @@ Write a short daily message (2–3 sentences max) for a child. Rules:
     if (!openaiRes.ok) {
       const errText = await openaiRes.text();
       console.error('OpenAI API error:', errText);
-      return json({ error: 'AI unavailable' }, 502);
+      return json({ error: 'AI unavailable' }, 502, req);
     }
 
     const openaiJson = await openaiRes.json() as {
@@ -101,9 +115,9 @@ Write a short daily message (2–3 sentences max) for a child. Rules:
     const message = openaiJson.choices?.[0]?.message?.content?.trim()
       ?? "You're doing amazing today — keep it up! 🌟";
 
-    return json({ message });
+    return json({ message }, 200, req);
   } catch (err) {
     console.error('dojo-coach error:', err);
-    return json({ error: 'Internal error' }, 500);
+    return json({ error: 'Internal error' }, 500, req);
   }
 });

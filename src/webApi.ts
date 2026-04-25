@@ -1029,9 +1029,46 @@ export const webApi: DojoApi = {
     });
   },
 
-  // ── Per-child behaviour excludes (web MVP: no-op) ───────────────────────────
-  listBehaviourExcludes:  async () => [],
-  toggleBehaviourExclude: async () => [],
+  // ── Per-child behaviour excludes ────────────────────────────────────────────
+  listBehaviourExcludes: async (childId: number): Promise<number[]> => {
+    const { data } = await sb()
+      .from('dd_child_behaviour_excludes')
+      .select('behaviour_local_id')
+      .eq('user_id', uid())
+      .eq('child_local_id', childId);
+    return (data ?? []).map((r) => Number(r.behaviour_local_id));
+  },
+
+  toggleBehaviourExclude: async ({ childId, behaviourId }: { childId: number; behaviourId: number }): Promise<number[]> => {
+    const { data: existing } = await sb()
+      .from('dd_child_behaviour_excludes')
+      .select('behaviour_local_id')
+      .eq('user_id', uid())
+      .eq('child_local_id', childId)
+      .eq('behaviour_local_id', behaviourId)
+      .maybeSingle();
+
+    if (existing) {
+      await sb()
+        .from('dd_child_behaviour_excludes')
+        .delete()
+        .eq('user_id', uid())
+        .eq('child_local_id', childId)
+        .eq('behaviour_local_id', behaviourId);
+    } else {
+      await sb()
+        .from('dd_child_behaviour_excludes')
+        .insert({ user_id: uid(), child_local_id: childId, behaviour_local_id: behaviourId });
+    }
+
+    // Return the updated exclusion list for this child
+    const { data } = await sb()
+      .from('dd_child_behaviour_excludes')
+      .select('behaviour_local_id')
+      .eq('user_id', uid())
+      .eq('child_local_id', childId);
+    return (data ?? []).map((r) => Number(r.behaviour_local_id));
+  },
 
   // ── Backup / restore (desktop only) ─────────────────────────────────────────
   backupExport:  async () => ({ ok: false, message: 'Backup is only available in the desktop app.' }),
