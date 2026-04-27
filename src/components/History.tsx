@@ -2,6 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../store';
 import type { HistoryEntry, HistoryExportRow } from '../types';
 
+// ── Date parsing ─────────────────────────────────────────────────────────────
+// Supabase returns ISO 8601 with timezone: "2024-01-15T10:30:00+00:00"
+// SQLite (Electron) returns space-separated, no timezone: "2024-01-15 10:30:00"
+// Appending 'Z' to a string that already has timezone info makes it invalid.
+function parseEntryDate(s: string): Date {
+  // If it already contains 'T' it's a proper ISO string — use as-is
+  if (s.includes('T')) return new Date(s);
+  // Otherwise it's the SQLite space-separated format — normalise it
+  return new Date(s.replace(' ', 'T') + 'Z');
+}
+
 // ── CSV helpers ───────────────────────────────────────────────────────────────
 
 const CSV_HEADERS = ['Date', 'Time', 'Child', 'Type', 'Reason', 'Points', 'Note'];
@@ -24,7 +35,7 @@ function escapeCell(val: string | number): string {
 function buildCsv(rows: HistoryExportRow[]): string {
   const lines: string[] = [CSV_HEADERS.join(',')];
   for (const r of rows) {
-    const d = new Date(r.created_at.replace(' ', 'T') + 'Z');
+    const d = parseEntryDate(r.created_at);
     const date = d.toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' });
     const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
     lines.push(
@@ -306,7 +317,7 @@ export function History() {
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold">{e.reason}</div>
                   <div className="text-xs text-dojo-muted">
-                    {new Date(e.created_at.replace(' ', 'T') + 'Z').toLocaleString()} · {kindLabel(e.kind)}
+                    {parseEntryDate(e.created_at).toLocaleString()} · {kindLabel(e.kind)}
                   </div>
                   <NoteRow
                     entry={e}
