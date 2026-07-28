@@ -226,6 +226,9 @@ export function KidView() {
   const [consequenceOverlay, setConsequenceOverlay] = useState(false);
   const [assignedConsequences, setAssignedConsequences] = useState<AssignedConsequence[]>([]);
   const [excludedBehaviourIds, setExcludedBehaviourIds] = useState<number[]>([]);
+  // Guards against a single tap firing tap() twice (double-fire touch/click
+  // events on touchscreens) — see dutydojo bug: duplicate rows in dd_pending.
+  const [submittingIds, setSubmittingIds] = useState<Set<number>>(new Set());
 
   // Undo last tap
   const [undoHistoryId, setUndoHistoryId] = useState<number | null>(null);
@@ -285,64 +288,77 @@ export function KidView() {
 
   async function tap(b: Behaviour) {
     if (!activeChildId) return;
+    // Ignore a second tap on the same tile while the first request is still
+    // in flight — prevents duplicate pending/history rows from a double-fire
+    // click/touch event on touchscreens.
+    if (submittingIds.has(b.id)) return;
+    setSubmittingIds((s) => new Set(s).add(b.id));
 
-    // ── Approval-required mode: queue the tap instead of applying ──
-    if (requireApproval) {
-      await window.dojo.addPending({ childId: activeChildId, behaviourId: b.id });
-      refreshPendingCount();
+    try {
+      // ── Approval-required mode: queue the tap instead of applying ──
+      if (requireApproval) {
+        await window.dojo.addPending({ childId: activeChildId, behaviourId: b.id });
+        refreshPendingCount();
+        const id = Date.now();
+        setToast({ id, text: `✋ Sent for parent approval`, kind: 'pending' });
+        setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 1800);
+        return;
+      }
+
+      // ── Normal mode: apply immediately ──
+      const res = await window.dojo.applyBehaviour({ childId: activeChildId, behaviourId: b.id });
+
+      // Daily limit or cap reached — no points applied
+      if (res.capped) {
+        const id = Date.now();
+        setToast({ id, text: `⛔ Daily limit reached for "${b.name}"`, kind: 'pending' });
+        setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2400);
+        return;
+      }
+
+      setBalance(res.balance);
+      refreshAfterTap();
+
+      // Sound effect
+      playSound(b.kind === 'positive' ? 'positive' : 'negative');
+
+      // Set up undo window (5 seconds)
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      setUndoHistoryId(res.historyId);
+      undoTimerRef.current = setTimeout(() => {
+        setUndoHistoryId(null);
+        undoTimerRef.current = null;
+      }, 5000);
+
       const id = Date.now();
-      setToast({ id, text: `✋ Sent for parent approval`, kind: 'pending' });
-      setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 1800);
-      return;
-    }
+      setToast({
+        id,
+        text: `${b.kind === 'positive' ? '+' : ''}${b.points} — ${b.name}`,
+        kind: b.kind === 'positive' ? 'positive' : 'negative',
+      });
+      setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 4800);
 
-    // ── Normal mode: apply immediately ──
-    const res = await window.dojo.applyBehaviour({ childId: activeChildId, behaviourId: b.id });
+      if (b.kind === 'positive') {
+        confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
+      }
 
-    // Daily limit or cap reached — no points applied
-    if (res.capped) {
-      const id = Date.now();
-      setToast({ id, text: `⛔ Daily limit reached for "${b.name}"`, kind: 'pending' });
-      setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2400);
-      return;
-    }
+      if (res.milestone) {
+        setTrophy(true);
+        confetti({ particleCount: 250, spread: 120, origin: { y: 0.6 }, startVelocity: 45 });
+        setTimeout(() => confetti({ particleCount: 150, angle: 60,  spread: 55, origin: { x: 0 } }), 200);
+        setTimeout(() => confetti({ particleCount: 150, angle: 120, spread: 55, origin: { x: 1 } }), 400);
+        setTimeout(() => setTrophy(false), 3200);
+      }
 
-    setBalance(res.balance);
-    refreshAfterTap();
-
-    // Sound effect
-    playSound(b.kind === 'positive' ? 'positive' : 'negative');
-
-    // Set up undo window (5 seconds)
-    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-    setUndoHistoryId(res.historyId);
-    undoTimerRef.current = setTimeout(() => {
-      setUndoHistoryId(null);
-      undoTimerRef.current = null;
-    }, 5000);
-
-    const id = Date.now();
-    setToast({
-      id,
-      text: `${b.kind === 'positive' ? '+' : ''}${b.points} — ${b.name}`,
-      kind: b.kind === 'positive' ? 'positive' : 'negative',
-    });
-    setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 4800);
-
-    if (b.kind === 'positive') {
-      confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
-    }
-
-    if (res.milestone) {
-      setTrophy(true);
-      confetti({ particleCount: 250, spread: 120, origin: { y: 0.6 }, startVelocity: 45 });
-      setTimeout(() => confetti({ particleCount: 150, angle: 60,  spread: 55, origin: { x: 0 } }), 200);
-      setTimeout(() => confetti({ particleCount: 150, angle: 120, spread: 55, origin: { x: 1 } }), 400);
-      setTimeout(() => setTrophy(false), 3200);
-    }
-
-    if (res.consequenceTriggered) {
-      setConsequenceOverlay(true);
+      if (res.consequenceTriggered) {
+        setConsequenceOverlay(true);
+      }
+    } finally {
+      setSubmittingIds((s) => {
+        const n = new Set(s);
+        n.delete(b.id);
+        return n;
+      });
     }
   }
 
@@ -619,12 +635,12 @@ export function KidView() {
         <div className="grid md:grid-cols-2 gap-6 mt-4">
           <Section title="Ways to earn ⭐" empty="No positive behaviours yet — ask a parent to add some.">
             {filteredPositives.map((b) => (
-              <TapTile key={b.id} b={b} onTap={() => tap(b)} />
+              <TapTile key={b.id} b={b} onTap={() => tap(b)} disabled={submittingIds.has(b.id)} />
             ))}
           </Section>
           <Section title="Needs Attention ⚠️" empty="Nothing needs attention yet.">
             {filteredNegatives.map((b) => (
-              <TapTile key={b.id} b={b} onTap={() => tap(b)} />
+              <TapTile key={b.id} b={b} onTap={() => tap(b)} disabled={submittingIds.has(b.id)} />
             ))}
           </Section>
         </div>
@@ -799,13 +815,16 @@ function Section({
   );
 }
 
-function TapTile({ b, onTap }: { b: Behaviour; onTap: () => void }) {
+function TapTile({ b, onTap, disabled }: { b: Behaviour; onTap: () => void; disabled?: boolean }) {
   const isPositive = b.kind === 'positive';
   return (
     <motion.button
-      whileTap={{ scale: 0.94 }}
-      onClick={onTap}
-      className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 text-center transition select-none cursor-pointer ${
+      whileTap={disabled ? undefined : { scale: 0.94 }}
+      onClick={disabled ? undefined : onTap}
+      disabled={disabled}
+      className={`relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border-2 text-center transition select-none ${
+        disabled ? 'opacity-60 cursor-default' : 'cursor-pointer'
+      } ${
         isPositive
           ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600'
           : 'bg-red-50   dark:bg-red-950/30   border-red-200   dark:border-red-800   hover:border-red-400   dark:hover:border-red-600'
